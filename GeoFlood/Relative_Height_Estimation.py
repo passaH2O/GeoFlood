@@ -80,7 +80,7 @@ def negative_height_identification(demArray, pathArray):
                                 h = 1
                                 #h = 2*r_y[y,x]+1
                             elif i == 3:
-                                h = 1.411
+                                h = 1.414
                                 #h = 2*(r_x[y,x]+r_y[y,x]+1)
                             z2 += h
                             if z2 < z_min:
