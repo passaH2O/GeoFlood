@@ -45,7 +45,7 @@ def network_split(in_shp, out_shp, split_distance):
     HydroID = 1
     for feature in layer:
         line = feature.GetGeometryRef()
-        no_segments = int(math.floor(line.Length() / split_distance))
+        no_segments = int(math.ceil(line.Length() / split_distance))
         length = line.Length()/no_segments
         remainder = line
         for i in range(no_segments-1):
@@ -61,6 +61,7 @@ def network_split(in_shp, out_shp, split_distance):
         feat.SetGeometry(remainder)
         feat.SetField('HYDROID', HydroID)
         feat.SetField('Length',remainder.Length())
+        HydroID += 1
         output_layer.CreateFeature(feat)
         feat.Destroy()
     ds.Destroy()
