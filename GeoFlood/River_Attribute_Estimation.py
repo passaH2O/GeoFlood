@@ -13,6 +13,7 @@ def river_attribute_estimation(segment_shp, segcatfn,
     driver = ogr.GetDriverByName("ESRI Shapefile")
     dataSource = driver.Open(segment_shp, 0)
     layer = dataSource.GetLayer()
+    srs = layer.GetSpatialRef()
     featureCount = layer.GetFeatureCount()
     rafile.write(str(featureCount)+"\n")
     raster = gdal.Open(burndemfn) 
@@ -26,7 +27,7 @@ def river_attribute_estimation(segment_shp, segcatfn,
 ##    mask = cat_rasterBand.GetMaskBand().ReadAsArray()
     mask = cat_rasterBand.GetMaskBand()
     ds = driver.CreateDataSource(segcat_shp)
-    cat_layer = ds.CreateLayer(segcat_shp)
+    cat_layer = ds.CreateLayer(segcat_shp, srs)
     field = ogr.FieldDefn("HYDROID", ogr.OFTInteger)
     cat_layer.CreateField(field)
     dst_field = cat_layer.GetLayerDefn().GetFieldIndex("HYDROID")
@@ -61,8 +62,9 @@ def river_attribute_estimation(segment_shp, segcatfn,
         z_array = rasterBand.ReadAsArray()[py, px].flatten()
         slope = -stats.linregress(m_array, z_array)[0]
         cat_layer.SetAttributeFilter("HYDROID = "+str(feat_id))
+        area = 0
         for feat in cat_layer:
-            area = feat.GetField("AreaSqKm")
+            area += feat.GetField("AreaSqKm")
             feat.Destroy()
         feature.Destroy()
         rafile.write(str(feat_id)+" "+str(slope)+" "+str(length)+" "+str(area)+"\n")
