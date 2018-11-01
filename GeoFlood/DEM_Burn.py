@@ -13,7 +13,7 @@ def raster2array(rasterfn):
     return array
     
 
-def array2raster(newRasterfn,rasterfn,array,datatype):
+def array2raster(newRasterfn,rasterfn,array,datatype,NoData_value):
     raster = gdal.Open(rasterfn)
     geotransform = raster.GetGeoTransform()
     originX = geotransform[0]
@@ -27,6 +27,7 @@ def array2raster(newRasterfn,rasterfn,array,datatype):
     outRaster.SetGeoTransform((originX, pixelWidth, 0, originY, 0, pixelHeight))
     outband = outRaster.GetRasterBand(1)
     outband.WriteArray(array)
+    outband.SetNoDataValue(NoData_value)
     outRasterSRS = osr.SpatialReference()
     outRasterSRS.ImportFromWkt(raster.GetProjectionRef())
     outRaster.SetProjection(outRasterSRS.ExportToWkt())
@@ -54,9 +55,14 @@ def main():
     burnpathfn = Name_path + '_burn.tif'
     demArray = raster2array(demfn)
     pathArray = raster2array(pathfn)
+    raster = gdal.Open(demfn)
+    band = raster.GetRasterBand(1)
+    NoData_value = band.GetNoDataValue()
+    print NoData_value
     burnArray = np.copy(demArray)
     burnArray = np.where(pathArray == 1, burnArray-100, burnArray)
-    array2raster(burnpathfn, demfn, burnArray,gdal.GDT_Float32)
+    burnArray = np.where(np.isnan(demArray), np.nan, burnArray)
+    array2raster(burnpathfn, demfn, burnArray,gdal.GDT_Float32,NoData_value)
     
 
 if __name__ == '__main__':
