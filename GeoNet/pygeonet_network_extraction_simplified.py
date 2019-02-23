@@ -129,9 +129,9 @@ def write_drainage_paths(geodesicPathsCellList, flowlinefn, skeletonfn):
         yy = geodesicPathsCellList[i][0]
         # Project the xx, and yy points
         xxProj = float(gtf[0])+ \
-                    float(gtf[1]) * np.array(xx)
+                    float(gtf[1]) * np.array(xx) + 0.5 * pixelWidth
         yyProj = float(gtf[3])+ \
-                    float(gtf[5])*np.array(yy)
+                    float(gtf[5])*np.array(yy) + 0.5 * pixelHeight
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())
         # Set the attributes using the values
