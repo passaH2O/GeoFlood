@@ -49,16 +49,32 @@ def main():
         os.mkdir(fplibrary_folder)
     Name_path = os.path.join(fplibrary_folder, DEM_name)
     driver = ogr.GetDriverByName("ESRI Shapefile")
+    for i in range(len(stages)):
+        stage = stages[i]
+        data = np.where((hand_arr<=stage) & (hand_arr >= 0),1,0)
+        fp_raster = Name_path+"_fpzone"+str(i)+".tif"
+        gdal_array.SaveArray(data.astype("int8"),
+                             fp_raster, "GTIFF", ds)
+        fp_vector = Name_path+"_fpzone"+str(i) + ".shp"
+        dst_ds = driver.CreateDataSource(fp_vector)
+        dst_layer = dst_ds.CreateLayer(fp_vector, srs)
+        tmpds = gdal.Open(fp_raster)
+        tmpband = tmpds.GetRasterBand(1)
+        # tmpband.SetNoDataValue(0)
+        gdal.Polygonize(tmpband, tmpband, dst_layer, -1, ["8CONNECTED"],
+                        callback=None)
+        dst_ds.Destroy()
     for hydroid in hydroids:
         catch_fplibrary_folder = os.path.join(fplibrary_folder,
                                               "Catchment_"+str(hydroid))
         if not os.path.exists(catch_fplibrary_folder):
             os.mkdir(catch_fplibrary_folder)
-        for stage in stages:
+        for i in range(len(stages)):
+            stage = stages[i]
             catch_stage_fp_tif = os.path.join(catch_fplibrary_folder,
-                                              'fp_'+str(stage)+'.tif')
+                                              'fp_'+str(i)+'.tif')
             catch_stage_fp_shp = os.path.join(catch_fplibrary_folder,
-                                              'fp_'+str(stage)+'.shp')
+                                              'fp_'+str(i)+'.shp')
             data = np.where((hand_arr<=stage) & (hand_arr >= 0) & \
                             (segcat_arr == hydroid),1,0)
             gdal_array.SaveArray(data.astype("int8"),
