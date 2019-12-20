@@ -1,11 +1,13 @@
+from __future__ import division
 import os
 import pandas as pd
-import ConfigParser
+import configparser
 import inspect
+from time import perf_counter 
 
 
 def main():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(os.path.join(os.path.dirname(
         os.path.dirname(
             inspect.stack()[0][1])),
@@ -33,11 +35,15 @@ def main():
         df_result['Roughness'] = manning_n
     else:
         df_n = pd.read_csv(manning_n)
+        print(df_n)
         df_network = pd.merge(df_network, df_n,
                               on='COMID')
+        print(df_network)                      
         df_result = pd.merge(df_result, df_network,
                              left_on='CatchId',
                              right_on='HYDROID')
+        print(df_result)                     
+                             
     df_result = df_result.drop('HYDROID', axis=1).rename(columns=lambda x: x.strip(" "))
     df_result['TopWidth (m)'] = df_result['SurfaceArea (m2)']/df_result['LENGTHKM']/1000
     df_result['WettedPerimeter (m)'] = df_result['BedArea (m2)']/df_result['LENGTHKM']/1000
@@ -51,5 +57,8 @@ def main():
     df_result.to_csv(handpropotxt,index=False)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    t0 = perf_counter()
     main()
+    t1 = perf_counter()
+    print(("time taken to postprocess hydraulic properties:", t1-t0, " seconds"))

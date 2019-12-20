@@ -1,18 +1,15 @@
-from __future__ import division
 import os
 import sys
 import shutil
 import subprocess
-from time import perf_counter 
-import configparser
-import inspect
+from time import clock
 import grass.script as g
 import grass.script.setup as gsetup
 
 
 def segment_catchment_delineation(fdrfn, segshp, segcatfn):
-    grass7bin = 'grass74'
-    # grass7bin = 'grass76'
+    grass7bin = 'grass76'
+    # grass7bin = 'grass72'
     if sys.platform.startswith('win'):
         # MS Windows
         # grass7bin = r'C:\Program Files\GRASS GIS 7.2.1\grass72.bat'
@@ -23,14 +20,14 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
     elif sys.platform == 'darwin':
         # Mac OS X
         # TODO: this have to be checked, maybe unix way is good enough
-        grass7bin = '/Applications/GRASS/GRASS-7.2.app/'
+        grass7bin = '/Applications/GRASS/GRASS-7.6.app/'
     startcmd = [grass7bin, '--config', 'path']
     p = subprocess.Popen(startcmd, shell=False,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
     if p.returncode != 0:
-        print("ERROR: Cannot find GRASS GIS 7 " \
-              "start script (%s)" % startcmd, file=sys.stderr)
+        print >>sys.stderr, "ERROR: Cannot find GRASS GIS 7 " \
+              "start script (%s)" % startcmd
         sys.exit(-1)
     gisbase = out.strip('\n\r')
     gisdb = os.path.join(os.path.expanduser("~"), "grassdata")
@@ -42,20 +39,20 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
     locationGeonet = 'geonet'
     grassGISlocation = os.path.join(gisdbdir, locationGeonet)
     if os.path.exists(grassGISlocation):
-        print("Cleaning existing Grass location")
+        print "Cleaning existing Grass location"
         shutil.rmtree(grassGISlocation)
     gsetup.init(gisbase, gisdbdir, locationGeonet, 'PERMANENT')
     mapsetGeonet = 'geonetuser'
-    print('Making the geonet location')
+    print 'Making the geonet location'
     g.run_command('g.proj', georef=fdrfn, location = locationGeonet)
     location = locationGeonet 
     mapset = mapsetGeonet
-    print('Existing Mapsets after making locations:')
+    print 'Existing Mapsets after making locations:'
     g.read_command('g.mapsets', flags = 'l')
-    print('Setting GRASSGIS environ')
+    print 'Setting GRASSGIS environ'
     gsetup.init(gisbase, gisdbdir, locationGeonet, 'PERMANENT')
     ##    g.gisenv()
-    print('Making mapset now')
+    print 'Making mapset now'
     g.run_command('g.mapset', flags = 'c', mapset = mapsetGeonet,\
                   location = locationGeonet, dbase = gisdbdir)
     # gsetup initialization 
@@ -65,7 +62,7 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
                   output='fdr',overwrite=True)
     g.run_command('g.region', raster='fdr')
     # Read the channel segment shapefile
-    g.run_command('v.in.ogr', input=segshp,
+    g.run_command('v.import', input=segshp,
                   output='Segment')
     g.run_command('v.to.rast', input='Segment', use='attr',
                   output='stream', attribute_column='HYDROID')
@@ -80,17 +77,10 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
 
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    DEM_name = config.get('Section', 'dem_name')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
-    #DEM_name = "DEM"
+    geofloodHomeDir = "C:\Users\pp7545\Documents\GeoNet3"
+    DEM_name = "OC1mTest"
+    projectName = "OnionCreek_1m_test"
+
     geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
                                       "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)

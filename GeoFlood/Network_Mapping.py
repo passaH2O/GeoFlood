@@ -1,9 +1,12 @@
+from __future__ import division
 import os
 import pandas as pd
 from osgeo import ogr
 import gdal, osr
-import ConfigParser
+import configparser
 import inspect
+from time import perf_counter 
+
 
 
 def network_mapping(cat_shp, seg_shp, map_csv):
@@ -29,7 +32,7 @@ def network_mapping(cat_shp, seg_shp, map_csv):
 
 
 def main():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(os.path.join(os.path.dirname(
         os.path.dirname(
             inspect.stack()[0][1])),
@@ -51,5 +54,8 @@ def main():
     network_mapping(cat_shp, seg_shp, map_csv)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    t0 = perf_counter()
     main()
+    t1 = perf_counter()
+    print(("time taken to map network:", t1-t0, " seconds"))

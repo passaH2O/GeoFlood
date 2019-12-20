@@ -1,9 +1,11 @@
+from __future__ import division
 import os
 import numpy as np
 from scipy import stats
 from osgeo import gdal,ogr
-import ConfigParser
+import configparser
 import inspect
+from time import perf_counter 
 
 
 def river_attribute_estimation(segment_shp, segcatfn,
@@ -61,6 +63,9 @@ def river_attribute_estimation(segment_shp, segcatfn,
         m_array = np.cumsum(m_array)
         z_array = rasterBand.ReadAsArray()[py, px].flatten()
         slope = -stats.linregress(m_array, z_array)[0]
+        print(feat_id)
+        print(m_array)
+        print(z_array)
         cat_layer.SetAttributeFilter("HYDROID = "+str(feat_id))
         area = 0
         for feat in cat_layer:
@@ -75,7 +80,7 @@ def river_attribute_estimation(segment_shp, segcatfn,
 
 
 def main():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(os.path.join(os.path.dirname(
         os.path.dirname(
             inspect.stack()[0][1])),
@@ -114,5 +119,8 @@ def main():
                                    attribute_txt)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    t0 = perf_counter()
     main()
+    t1 = perf_counter()
+    print(("time taken to estimate river attributes:", t1-t0, " seconds"))

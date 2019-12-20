@@ -1,11 +1,13 @@
+from __future__ import division
 import sys, os, string, time, re, getopt, glob, shutil, math
 import netCDF4
 import numpy as np
 import pandas as pd
 from datetime import datetime
 import csv
-import ConfigParser
+import configparser
 import inspect
+from time import perf_counter 
 #import pytz
 
 # read input NOAA NWM netcdf file
@@ -18,7 +20,7 @@ def readForecast(in_nc, df_netmap):
     intype='channel_rt'
     metadata_dims = ['feature_id']
     dimsize = len(rootgrp.dimensions[metadata_dims[0]]) # num rows
-    global_attrs={att:val for att,val in rootgrp.__dict__.iteritems()}
+    global_attrs={att:val for att,val in rootgrp.__dict__.items()}
     timestamp_str=global_attrs['model_output_valid_time']
     timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d_%H:%M:%S') # read
     #timestamp.replace(tzinfo=pytz.UTC) # set timezone 
@@ -57,7 +59,7 @@ def forecastH (init_timestr, timestr, hp_input, stage_output):
     hpdata = pd.read_csv(hp_input)
     h = np.zeros_like(Qs, dtype=float)
     for i in range(len(comids)):
-        Qs[i] = 100
+        Qs[i] = 500
         h_array = hpdata[hpdata['CatchId'] == comids[i]]['Stage'].values
         q_array = hpdata[hpdata['CatchId'] == comids[i]]['Discharge (m3s-1)'].values
         h[i] = np.interp(Qs[i], q_array, h_array, right=-9999)
@@ -103,7 +105,7 @@ h = None # hash table for Q forecast lookup, indexed by COMID (station id)
 
 
 if __name__ == '__main__':
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(os.path.join(os.path.dirname(
         os.path.dirname(
             inspect.stack()[0][1])),
@@ -137,3 +139,4 @@ if __name__ == '__main__':
     timestr = tobj['timestamp']
     init_timestr = tobj['init_timestamp']
     forecastH(init_timestr, timestr, hp_input, stage_output)
+

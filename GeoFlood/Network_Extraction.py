@@ -1,11 +1,14 @@
+from __future__ import division
 import os
 import gdal, osr
 from osgeo import ogr
 from skimage.graph import route_through_array
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
-import ConfigParser
+import configparser
 import inspect
+from time import perf_counter 
 
 
 originX = 0.0
@@ -71,7 +74,7 @@ def route_path(costSurfaceArray, df_flowline, pathArray, streamcell_csv, flowlin
     NewgeodesicPathsCellDic, numberOfEndPoints, geodesicPathsCellList, keyList, \
                              jx, jy = Channel_Reconstruct(geodesicPathsCellDic, i)
     write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn)
-    df_channel = pd.DataFrame(NewgeodesicPathsCellDic.items(),columns=['ID', 'PathCellList'])
+    df_channel = pd.DataFrame(list(NewgeodesicPathsCellDic.items()),columns=['ID', 'PathCellList'])
     df_channel.to_csv(streamcell_csv, index=False)
 
 
@@ -113,7 +116,7 @@ def Channel_Reconstruct(geodesicPathsCellDic, numberOfEndPoints):
                         break
     NewgeodesicPathsCellList = []
     keyList = []
-    for key in NewgeodesicPathsCellDic.keys():
+    for key in list(NewgeodesicPathsCellDic.keys()):
         NewgeodesicPathsCellList.append(np.asarray(NewgeodesicPathsCellDic[key]))
         keyList.append(key)
     numberOfEndPoints = len(StartpointList)
@@ -136,7 +139,7 @@ def write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn)
     field_name.SetWidth(24)
     layer.CreateField(field_name)
     layer.CreateField(ogr.FieldDefn("HYDROID", ogr.OFTInteger))
-    for i in xrange(0,len(geodesicPathsCellList)):
+    for i in range(0,len(geodesicPathsCellList)):
         # Project the linepoints to appropriate projection
         xx = geodesicPathsCellList[i][1]
         yy = geodesicPathsCellList[i][0]
@@ -152,7 +155,7 @@ def write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn)
         feature.SetField("HYDROID", keyList[i])
         # create the WKT for the feature using Python string formatting
         line = ogr.Geometry(ogr.wkbLineString)            
-        for j in xrange(0,len(xxProj)):
+        for j in range(0,len(xxProj)):
             line.AddPoint(xxProj[j],yyProj[j])
         # Create the point from the Well Known Txt
         #lineobject = line.ExportToWkt()
@@ -187,19 +190,16 @@ def array2raster(newRasterfn,rasterfn,array,datatype):
 
 
 def main():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(os.path.join(os.path.dirname(
         os.path.dirname(
             inspect.stack()[0][1])),
                              'GeoFlood.cfg'))
     geofloodHomeDir = config.get('Section', 'geofloodhomedir')
     projectName = config.get('Section', 'projectname')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
     geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
                                       "GIS", projectName)
     DEM_name = config.get('Section', 'dem_name')
-    #DEM_name = "DEM"
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     flowline_csv = Name_path + '_endPoints.csv'
     curvaturefn = Name_path + '_curvature.tif'
@@ -217,11 +217,11 @@ def main():
     curvatureArray = raster2array(curvaturefn)
     curvatureArray = normalize(curvatureArray)
     skeletonArray = raster2array(skeletonfn)
+    costsurfaceArray = 1.0/(facArray+flowMean*curvatureArray)
     #costsurfaceArray = 1.0/(facArray+flowMean*curvatureArray+flowMean*skeletonArray)
-    costsurfaceArray = 1.0/(facArray+curvatureArray+10*skeletonArray)
-    if os.path.exists(handfn):
-        handArray = raster2array(handfn)
-        costsurfaceArray = 1.0/(facArray+curvatureArray+skeletonArray*10+handArray)
+    #if os.path.exists(handfn):
+    #    handArray = raster2array(handfn)
+    #    costsurfaceArray = 1.0/(facArray+flowMean*curvatureArray+handArray)
     array2raster(costsurfacefn,facfn,costsurfaceArray,gdal.GDT_Float32)
     costsurfaceArray[np.isnan(costsurfaceArray)] = 10000
     get_raster_info(costsurfacefn)
@@ -231,5 +231,8 @@ def main():
     array2raster(pathfn,costsurfacefn,pathArray,gdal.GDT_Byte)
     
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    t0 = perf_counter()
     main()
+    t1 = perf_counter()
+    print(("time taken to retrace flowlines:", t1-t0, " seconds"))

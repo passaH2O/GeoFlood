@@ -1,9 +1,11 @@
+from __future__ import division
 import os
 import gdal, osr
 from osgeo import ogr
 import numpy as np
-import ConfigParser
+import configparser
 import inspect
+from time import perf_counter 
 
 
 global d_x, d_y, g_x, g_y, nodata
@@ -158,7 +160,7 @@ def array2raster(newRasterfn,rasterfn,array,datatype):
 
 
 def main():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(os.path.join(os.path.dirname(
         os.path.dirname(
             inspect.stack()[0][1])),
@@ -185,5 +187,9 @@ def main():
     array2raster(negahandfn,demfn,relaHeightArray,gdal.GDT_Byte)
     
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    t0 = perf_counter()
     main()
+    t1 = perf_counter()
+    print(("time taken to compute relative height:", t1-t0, " seconds"))
+
