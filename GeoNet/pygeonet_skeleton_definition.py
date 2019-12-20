@@ -1,5 +1,6 @@
+from __future__ import division
 import numpy as np
-from time import clock
+from time import perf_counter 
 from pygeonet_rasterio import *
 from pygeonet_plot import *
 
@@ -7,6 +8,7 @@ from pygeonet_plot import *
 # Skeleton by thresholding one grid measure e.g. flow or curvature
 def compute_skeleton_by_single_threshold(inputArray, threshold):
     skeletonArray = np.zeros((inputArray.shape))
+    np.warnings.filterwarnings('ignore')
     skeletonArray[np.where(inputArray > threshold)] = 1
     return skeletonArray
 
@@ -36,12 +38,12 @@ def main():
         curvatureDemArray[:])]
     curvatureDemMean = np.nanmean(finiteCurvatureDemList)
     curvatureDemStdDevn = np.nanstd(finiteCurvatureDemList)
-    print 'Curvature mean: ', curvatureDemMean
-    print 'Curvature standard deviation: ', curvatureDemStdDevn
+    print('Curvature mean: ', curvatureDemMean)
+    print('Curvature standard deviation: ', curvatureDemStdDevn)
     flowArray = read_geotif_generic(outfilepath, fac_filename)
     flowArray[np.isnan(filteredDemArray)] = np.nan
     flowMean = np.mean(flowArray[~np.isnan(flowArray[:])])
-    print 'Mean upstream flow: ', flowMean
+    print('Mean upstream flow: ', flowMean)
     # Define a skeleton based on flow alone
     skeletonFromFlowArray = \
     compute_skeleton_by_single_threshold(flowArray,
@@ -52,6 +54,11 @@ def main():
                                          curvatureDemMean +
                                          thresholdCurvatureQQxx *
                                          curvatureDemStdDevn)
+    # Writing the skeletonFromFlowArray array
+    outfilename = demName.split('.')[0]+'_flowskeleton.tif'
+    write_geotif_generic(skeletonFromFlowArray,
+                         outfilepath, outfilename)
+
     # Writing the skeletonFromCurvatureArray array
     outfilename = demName.split('.')[0]+'_curvatureskeleton.tif'
     write_geotif_generic(skeletonFromCurvatureArray,
@@ -74,9 +81,10 @@ def main():
                               'Skeleton with outlets', cm.binary)
     except NameError:
         pass
-
+        
 if __name__ == '__main__':
-    t0 = clock()
+    t0 = perf_counter()
     main()
-    t1 = clock()
-    print "time taken to complete skeleton definition:", t1-t0, " seconds"
+    t1 = perf_counter()
+    print(("time taken to complete skeleton definition:", t1-t0, " seconds"))
+

@@ -1,7 +1,8 @@
+from __future__ import division
 import os
 import sys
 import shutil
-from time import clock
+from time import perf_counter 
 import subprocess
 from pygeonet_rasterio import *
 from pygeonet_plot import *
@@ -9,57 +10,56 @@ from pygeonet_plot import *
 
 # Flow accumulation is computed by calling GRASS GIS functions.
 def flowaccumulation(filteredDemArray):
-    grass7bin = 'grass72'
-    # grass7bin = 'grass72'
-    if sys.platform.startswith('win'):
-        # MS Windows
-        grass7bin = r'C:\Program Files\GRASS GIS 7.2.2\grass72.bat'
-        # grass7bin = r'C:\Program Files\GRASS GIS 7.2.1\grass72.bat'
-        # uncomment when using standalone WinGRASS installer
-        # grass7bin = r'C:\Program Files (x86)\GRASS GIS 7.2.0\grass72.bat'
-        # this can be avoided if GRASS executable is added to PATH
-    elif sys.platform == 'darwin':
-        # Mac OS X
-        # TODO: this have to be checked, maybe unix way is good enough
-        grass7bin = '/Applications/GRASS/GRASS-7.2.app/'
-    mswin = sys.platform.startswith('win')
-    if mswin:
-        gisdbdir = os.path.join(os.path.expanduser("~"), "Personal\grassdata")
-    else:
-        gisdbdir = os.path.join(os.path.expanduser("~"), "grassdata")
-    locationGeonet = 'geonet'
-    mapsetGeonet = 'geonetuser'
-    if sys.platform.startswith("win"):
-        import ctypes
-        SEM_NOGPFAULTERRORBOX = 0x0002  # From MSDN
-        ctypes.windll.kernel32.SetErrorMode(SEM_NOGPFAULTERRORBOX)
-        CREATE_NO_WINDOW = 0x08000000    # From Windows API
-        subprocess_flags = CREATE_NO_WINDOW
-    else:
-        subprocess_flags = 0
-    subprocess_flags = 0
-    startcmd = [grass7bin, os.path.join(gisdbdir, locationGeonet,
-                                        mapsetGeonet), '--exec',
-                os.path.join(Parameters.geoNetHomeDir,
-                             "Tools", "GeoNet",
-                             "pygeonet_grass.py")]
-##    startcmd = ['python', os.path.join(os.path.dirname(__file__),
-##                                       "pygeonet_grass.py")]
-    p = subprocess.Popen(startcmd, shell=True,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         creationflags=subprocess_flags)
-    out, err = p.communicate()
-    print out, err
-    tmpfile = Parameters.demFileName  # this reads something like skunk.tif
+    # Most of the processing here is commented out until GRASS is available for Python3.
+    # When available, uncomment the lines with a single #
+    #grass7bin = 'grass76'
+    #if sys.platform.startswith('win'):
+    #    # MS Windows
+    #    grass7bin = r'C:\Program Files\GRASS GIS 7.6\grass76.bat'
+    #    # uncomment when using standalone WinGRASS installer
+    #    # grass7bin = r'C:\Program Files (x86)\GRASS GIS 7.2.0\grass72.bat'
+    #    # this can be avoided if GRASS executable is added to PATH
+    #elif sys.platform == 'darwin':
+    #    # Mac OS X
+    #    # TODO: this has to be checked, maybe unix way is good enough
+    #    grass7bin = '/Applications/GRASS/GRASS-7.6.app/'
+    #mswin = sys.platform.startswith('win')
+    #if mswin:
+    #    gisdbdir = os.path.join(os.path.expanduser("~"), "Documents\grassdata")
+    #else:
+    #    gisdbdir = os.path.join(os.path.expanduser("~"), "grassdata")
+    #locationGeonet = 'geonet'
+    #mapsetGeonet = 'geonetuser'
+    #if sys.platform.startswith("win"):
+    #    import ctypes
+    #    SEM_NOGPFAULTERRORBOX = 0x0002  # From MSDN
+    #    ctypes.windll.kernel32.SetErrorMode(SEM_NOGPFAULTERRORBOX)
+    #    CREATE_NO_WINDOW = 0x08000000    # From Windows API
+    #    subprocess_flags = CREATE_NO_WINDOW
+    #else:
+    #    subprocess_flags = 0
+    #subprocess_flags = 0
+    #startcmd = [grass7bin, os.path.join(gisdbdir, locationGeonet,
+    #                                    mapsetGeonet), '--exec',
+    #            os.path.join(Parameters.geoNetHomeDir,
+    #                         "GeoNet","pygeonet_grass.py")]
+##  #  startcmd = ['python', os.path.join(os.path.dirname(__file__),
+##  #                                     "pygeonet_grass.py")]
+    #p = subprocess.Popen(startcmd, shell=True,
+    #                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    #                     creationflags=subprocess_flags)
+    #out, err = p.communicate()
+    #print(out, err)
+    tmpfile = Parameters.demFileName  # this reads the name of the DEM
     geotiffmapraster = tmpfile.split('.')[0]
-    print 'GRASSGIS layer name: ', geotiffmapraster
+    print('GRASSGIS layer name: ', geotiffmapraster)
     gtf = Parameters.geotransform
     # Save the outputs as TIFs
     outlet_filename = geotiffmapraster + '_outlets.tif'
     outputFAC_filename = geotiffmapraster + '_fac.tif'
     outputFDR_filename = geotiffmapraster + '_fdr.tif'
     outputBAS_filename = geotiffmapraster + '_basins.tif'
-    # plot the flow directions
+    ## plot the flow directions
     nanDemArrayfdr = read_geotif_generic(Parameters.geonetResultsDir,
                                          outputFDR_filename)
     if defaults.doPlot == 1:
@@ -77,8 +77,8 @@ def flowaccumulation(filteredDemArray):
     negative cells indicates the direction of flow.
     """
     outlets = np.where(nanDemArrayfdr < 0)
-    print "Number of outlets :", str(len(outlets[0]))
-    print ([[outlets[0][i], outlets[1][i]] for i in range(len(outlets[0]))])
+    print("Number of outlets :", str(len(outlets[0])))
+    # print ([[outlets[0][i], outlets[1][i]] for i in range(len(outlets[0]))])
     # plot the flow accumulation
     nanDemArrayfac = read_geotif_generic(Parameters.geonetResultsDir,
                                          outputFAC_filename)
@@ -135,12 +135,12 @@ def flowaccumulation(filteredDemArray):
 
 
 def main():
-    print Parameters.pmGrassGISfileName
+    print(Parameters.pmGrassGISfileName)
     filteredDemArray = read_geotif_filteredDEM()
     flowroutingresults = flowaccumulation(filteredDemArray)
 
 if __name__ == '__main__':
-    t0 = clock()
+    t0 = perf_counter()
     main()
-    t1 = clock()
-    print "time taken to complete flow accumulation:", t1-t0, " seconds"
+    t1 = perf_counter()
+    print(("time taken to complete flow accumulation:", t1-t0, " seconds"))

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import pygeonet_defaults as defaults
 
+
 def raster_plot(Array, title):
     if not hasattr(defaults, 'figureNumber'):
         defaults.figureNumber = 0
@@ -15,6 +16,11 @@ def raster_plot(Array, title):
     plt.colorbar()
     if defaults.doPlot==1:
         plt.show()
+        #If instead of showing the figure you prefer to save directly, use the three lines below instead
+        #png_file = '{0}.png'.format(title)
+        #plt.savefig(png_file)
+        #plt.close()
+
 
 def raster_point_plot(Array, PointsList, title, color=cm.coolwarm, point_style='go'):
     if not hasattr(defaults, 'figureNumber'):
@@ -29,6 +35,10 @@ def raster_point_plot(Array, PointsList, title, color=cm.coolwarm, point_style='
     plt.colorbar()
     if defaults.doPlot==1:
         plt.show()
+        #If instead of showing the figure you prefer to save directly, use the three lines below instead
+        #png_file = '{0}.png'.format(title)
+        #plt.savefig(png_file)
+        #plt.close()
 
 def geodesic_contour_plot(geodesicDistanceArray, title):
     if not hasattr(defaults, 'figureNumber'):
@@ -41,7 +51,11 @@ def geodesic_contour_plot(geodesicDistanceArray, title):
     plt.colorbar()
     if defaults.doPlot==1:
         plt.show()
-
+        #If instead of showing the figure you prefer to save directly, use the three lines below instead
+        #png_file = '{0}.png'.format(title)
+        #plt.savefig(png_file)
+        #plt.close()
+        
 def channel_plot(flowDirectionsArray,geodesicPathsCellList,
                  xx,yy,title,color=cm.coolwarm,
                  point_style='go',line_style='k-'):
@@ -57,4 +71,8 @@ def channel_plot(flowDirectionsArray,geodesicPathsCellList,
     plt.colorbar()
     if defaults.doPlot==1:
         plt.show()
+        #If instead of showing the figure you prefer to save directly, use the three lines below instead
+        #png_file = '{0}.png'.format(title)
+        #plt.savefig(png_file)
+        #plt.close()
 

@@ -2,7 +2,7 @@
 import os
 import shutil
 import inspect
-import ConfigParser
+import configparser
 
 """
 Folder structure for pyGeoNet is as follows
@@ -19,29 +19,22 @@ pmGrassGISfileName -- this is an important intermediate GRASS GIS file name.
 # Skfmm parameters
 numBasinsElements = 6
 
-# Some used demFileNames
-#ikawa_roi1_nutm54_clipped
-#dem_2012_mission_v1
 
 #PLEASE DO NOT CHANGE VARIABLES,UNLESS YOU KNOW WHAT YOU ARE DOING
 
 """
 
 # Prepare GeoNet parameters just prior to main code execution
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 config.read(os.path.join(os.path.dirname(
     os.path.dirname(
         inspect.stack()[0][1])),
                          'GeoFlood.cfg'))
 geoNetHomeDir = config.get('Section', 'geofloodhomedir')
-#geoNetHomeDir = "H:\GeoFlood"
 projectName = config.get('Section', 'projectname')
-#projectName = "Test_Stream"
 demDataFilePath = os.path.join(geoNetHomeDir, "Inputs",
                                "GIS", projectName)
 demFileName = config.get('Section', 'dem_name')+".tif"
-#demFileName = "DEM.tif"
-# channelheadFileName = "channelhead.shp"
 channelheadFileName = "Hou_weights.tif"
 channeljunctionFileName = "junction.shp"
 
@@ -93,6 +86,6 @@ numBasinsElements = 2
 ####print "Making basinTiffs"
 ####os.mkdir(geonetResultsBasinDir)
 ####
-print "Making results"
+print ("Making results")
 if not os.path.exists(geonetResultsDir):
     os.mkdir(geonetResultsDir)
