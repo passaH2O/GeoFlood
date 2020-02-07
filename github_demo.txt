@@ -1,0 +1,93 @@
+    1  scp
+    2  ls
+    3  pwd
+    4  cd /mnt
+    5  ls
+    6  cd 
+    7  cd /mnt/c
+    8  ls
+    9  cd Users
+   10  ls
+   11  cd alecc/
+   12  ls
+   13  cd Downloads/
+   14  ls
+   15  cd GeoNet3_Sept16/
+   16  ls
+   17  cd GeoNet3_Sept16/
+   18  ls
+   19  cd GeoNet3/
+   20  ls
+   21  cd Inputs/
+   22  ls
+   23  cd GIS/
+   24  ls
+   25  cd OnionCreek_1m_test/
+   26  ls
+   27  cd new_jeff/
+   28  ls
+   29  cd ..
+   30  scp -r new_jeff stampede2.tacc.utexas.edu:~
+   31  ssh stampede2.tacc.utexas.edu
+   32  history | less
+   33  history > linux_history.txt
+   34  ls
+   35  exit
+   36  ls
+   37  pwd
+   38  ls -a
+   39  cd /mnt/c/Users/alecc/Downloads/GeoNet3_Sept16/GeoNet3_Sept16/GeoNet3/GeoFlood
+   40  ls
+   41  touch test.txt
+   42  rm test.txt 
+   43  cd ..
+   44  git clone https://github.com/passaH2O/GeoFlood.git
+   45  cd GeoFlood
+   46  ls
+   47  cd ..
+   48  mv GeoFlood git_GeoFlood
+   49  cd git_GeoFlood/
+   50  ls -a
+   51  cd GeoFlood
+   52  ls
+   53  cd ..
+   54  rm git_GeoFlood/
+   55  rm -rf git_GeoFlood/
+   56  git clone https://github.com/aleccarruthers/GeoFlood.git
+   57  mv GeoFlood git_GeoFlood
+   58  cd git_GeoFlood/
+   59  cd GeoFlood
+   60  ls
+   61  cd ..
+   62  ls
+   63  apt install screen
+   64  sudo apt install screen
+   65  screen
+   66  ls
+   67  cd GeoNet3_Sept16/
+   68  ls
+   69  cd GeoNet3_Sept16/
+   70  cd GeoNet3/
+   71  ls
+   72  cd GeoFlood
+   73  export GEOFLOOD=/mnt/c/Users/alecc/Downloads/GeoNet3_Sept16/GeoNet3_Sept16/GeoNet3/GeoFlood
+   74  ls
+   75  cd ..
+   76  cd $GEOFLOOD
+   77  cd ..
+   78  cd ../../
+   79  cd git_GeoFlood/
+   80  ls
+   81  export GIT_GEOFLOOD=/mnt/c/Users/alecc/Downloads/git_GeoFlood
+   82  cd GeoFlood/
+   83  ls
+   84  cp /mnt/c/Users/alecc/Downloads/GeoNet3_Sept16/GeoNet3_Sept16/GeoNet3/GeoFlood/Relative_Height_Estimation.py .
+   85  cd ..
+   86  git add .
+   87  git commit -m "Optimized For Loops in GeoFlood Relative Height Estimation."
+   88  git config --global user.email "aleccarruthers@utexas.edu"
+   89  git config --global user.name "Alec Carruthers"
+   90  git commit -m "Optimized For Loops in GeoFlood Relative Height Estimation."
+   91  git push origin master
+   92  history | github_demo.txt
+   93  history > github_demo.txt
