@@ -1,6 +1,5 @@
 # GeoFlood
 Flood mapping program based on high-resolution terrain analyses.
-Scripts updated to Python 3 on 12/20/19 and training material posted. 
 
 # Configuration 
 Navigate to the *GeoNet* directory
@@ -12,8 +11,26 @@ For example, if I wanted to create a project titled 'my_project' with a dem name
 ```
 python pygeonet_prepare.py my_project my_dem
 ```
-from the command line or anaconda prompt.
-Place **my_dem.tif** into the *Inputs/GIS/my_project* directory that was just created.
+
+Resulting File Structure:
+- GeoNet
+- GeoFlood
+- Inputs
+  - GIS
+    - [PROJECT_NAME]
+  - Hydraulics
+    - [PROJECT_NAME]
+  - NWM
+    - [PROJECT_NAME]
+- Outputs
+  - GIS
+    - [PROJECT_NAME]
+  - Hydraulics
+    - [PROJECT_NAME]
+  - Inundation
+  - NWM
+    - [PROJECT_NAME]
+Place **my_dem.tif** into the *Inputs/GIS/[PROJECT_NAME]* directory that was just created.
 
 # GeoNet Workflow
 ### 1. DEM smoothing
