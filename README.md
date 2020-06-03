@@ -17,20 +17,21 @@ Resulting File Structure:
 - GeoFlood
 - Inputs
   - GIS
-    - [PROJECT_NAME]
+    - my_project
   - Hydraulics
-    - [PROJECT_NAME]
+    - my_project
   - NWM
-    - [PROJECT_NAME]
+    - my_project
 - Outputs
   - GIS
-    - [PROJECT_NAME]
+    - my_project
   - Hydraulics
-    - [PROJECT_NAME]
+    - my_project
   - Inundation
   - NWM
-    - [PROJECT_NAME]
-Place **my_dem.tif** into the *Inputs/GIS/[PROJECT_NAME]* directory that was just created.
+    - my_project
+
+Place **my_dem.tif** into the *Inputs/GIS/my_project* directory that was just created.
 
 # GeoNet Workflow
 ### 1. DEM smoothing
@@ -60,6 +61,8 @@ The flow accumulation threshold used in this script can be adjusted by changing 
 - Increasing the threshold decreases the density of the extracted network.
 
 
-### 5. GeoFlood Workflow
-Navigate to the *GeoFlood* directory.
+# GeoFlood Workflow
+GeoFlood was designed to work with NHD MR flowlines as those are the flowlines used in the National Water Model. Find NHD MR vector data here:
+
+Place flowline/s and catchment/s shapefiles in the *Inputs/GIS/my_project* directory
 
