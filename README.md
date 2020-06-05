@@ -82,3 +82,49 @@ This script will output a csv containing the start and end points of the flowlin
 `python Relative_Height_Estimation.py`
 
 Returns a binary raster/array with values of 1 given to pixels at a lower elevation than the elevation associated with NHD MR Flowline pixels. A value of zero is given to all other pixels in the image, i.e. pixels at a higher elevation than the NHD MR Flowlines.
+
+### 7. Network Extraction
+`python Network_Extraction.py`
+
+Returns a shapefile of the extracted network, a binary raster of the "burned in" extracted network, and a cost raster. In this context, "burned in" does not mean modifying the elevations of the input rater, but rather giving a value of 1 to pixels representing the extracted network and 0 to all other pixels.
+
+**Note: If the input DEM is > 1.5 GB, the input arrays to this script will be batch processed for memory management purposes.**
+
+# TauDEM Functions
+Please refer to the TauDEM user guide for more specific instructions and descriptions about their entire suite of products. 
+
+TauDEM User Guide: https://hydrology.usu.edu/taudem/taudem5/TauDEM53GettingStartedGuide.pdfage
+
+For the GeoNet/GeoFlood workflow the following functions are used: 
+- PitRemove
+- D-Infinity flow directions
+- D-Infitinity flow accumulation
+- HAND (Height Above Nearest Drain)
+- Hydraulic property base table
+- Inunmap
+
+The following commands were all ran from the command line/anaconda prompt.
+
+### 8. Pit Filling
+`mpiexec -n [integer value representing the number of proceses to use] *path/to/TauDEM/pitremove*-z *path/to/input/dem.tif* -fel *path/to/output/GIS/dem_fel.tif*`
+
+### 9. D-Infinity Flow Direction:
+`mpiexec -n [integer value representing the number of proceses to use] *path/to/TauDEM/dinfflowdir* - fel *path/to/outputs/GIS/dem_fel.tif* -ang *path/to/outputs/GIS/dem_ang.tif* -slp *path/to/outputs/GIS/dem_slp.tif*`
+
+Both '_ang' and '_slp' are outputs of this command.
+
+### 10. D-Infinity Flow Accumulation
+`mpiexec -n [integer value representing the number of proceses to use] *path/to/TauDEM/areadinf* - ang *path/to/outputs/GIS/dem_ang.tif* -sca *path/to/outputs/GIS/dem_sca.tif*`
+
+### 11. Height Above Nearest Drainage
+`mpiexec -n [integer value representing the number of proceses to use] *path/to/TauDEM/dinfdistdown* - ang *path/to/outputs/GIS/dem_ang.tif* -fel *path/to/outputs/GIS/dem_fel.tif* -slp *path/to/outputs/GIS/dem_slp.tif* -src *path/to/outputs/GIS/dem_path.tif* -dd *path/to/outputs/GIS/dem_hand.tif* -m ave v`
+
+# Back to GeoFlood
+
+### 12. Segmenting Extracted Network
+`python Streamline_Segmentation.py`
+
+Currently set at 1000m.
+
+### 13. 
+
