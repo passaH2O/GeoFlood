@@ -160,16 +160,18 @@ The following commands were all ran from the command line/anaconda prompt.
 ### 9. D-Infinity Flow Direction:
 `mpiexec -n [integer value representing the number of proceses to use] ...GeoNet3/TauDEM/dinfflowdir - fel ...GeoOutputs/GIS/my_project/dem_fel.tif -ang ...GeoOutputs/GIS/my_project/dem_ang.tif -slp ...GeoOutputs/GIS/my_project/dem_slp.tif`
 
-*Outputs: ...GeoOutputs/GIS/my_project/dem_ang.tif (Flow direction raster using D-infinity flow direction method)
-*         ...GeoOutputs/GIS/my_project/dem_slp.tif* (Slope raster resulting from D-infinity flow directions)
+*Outputs: ...GeoOutputs/GIS/my_project/dem_ang.tif (Flow direction raster using D-infinity flow direction method proposed in Tarboton,*                                                    *D. G., (1997))*
+*         ...GeoOutputs/GIS/my_project/dem_slp.tif* (Slope raster resulting from D-infinity flow directions)*
 
+### 10. D-Infinity Flow Accumulation [OPTIONAL]
+`mpiexec -n [integer value representing the number of proceses to use] ...GeoNet3/TauDEM/TauDEM/areadinf - ang ...GeoOutputs/GIS/my_project/dem_ang.tif -sca ...GeoOutputs/GIS/my_project/dem_sca.tif`
 
-
-### 10. D-Infinity Flow Accumulation
-`mpiexec -n [integer value representing the number of proceses to use] *path/to/TauDEM/areadinf* - ang *path/to/outputs/GIS/dem_ang.tif* -sca *path/to/outputs/GIS/dem_sca.tif*`
+*Outputs: ...GeoOutputs/GIS/my_project/dem_sca.tif (Flow accumulation based on D-inf flow directions)*
 
 ### 11. Height Above Nearest Drainage
-`mpiexec -n [integer value representing the number of proceses to use] *path/to/TauDEM/dinfdistdown* - ang *path/to/outputs/GIS/dem_ang.tif* -fel *path/to/outputs/GIS/dem_fel.tif* -slp *path/to/outputs/GIS/dem_slp.tif* -src *path/to/outputs/GIS/dem_path.tif* -dd *path/to/outputs/GIS/dem_hand.tif* -m ave v`
+`mpiexec -n [integer value representing the number of proceses to use] ...GeoNet3/TauDEM/TauDEM/dinfdistdown - ang ...GeoOutputs/GIS/my_project/dem_ang.tif -fel ...GeoOutputs/GIS/my_project/dem_fel.tif -slp ...GeoOutputs/GIS/my_project/dem_slp.tif -src ...GeoOutputs/GIS/my_project/dem_path.tif -dd ...GeoOutputs/GIS/my_project/dem_hand.tif -m ave v`
+
+*Outputs: ...GeoOutputs/GIS/my_project/dem_hand.tif (Height Above Nearest Drainage (HAND) raster)*
 
 # Back to GeoFlood
 
