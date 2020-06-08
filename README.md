@@ -103,7 +103,9 @@ The flow accumulation threshold used in this script can be adjusted by changing 
 - Decreasing the threshold increases the density of the network, i.e. more pixels classified as likely channels/reaches.
 - Increasing the threshold decreases the density of the extracted network.
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_skeleton.tif>*
+Outputs:
+
+         *<...GeoOutputs\GIS\my_project\dem_skeleton.tif>*`
          *<...GeoOutputs\GIS\my_project\dem_flowskeleton.tif>*
          *<...GeoOutputs\GIS\my_project\dem_curvatureskeleton.tif>*
          
