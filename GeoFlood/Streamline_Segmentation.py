@@ -5,8 +5,9 @@ from osgeo import ogr
 import gdal, osr
 import configparser
 import inspect
-from time import perf_counter 
-
+import geopandas as gpd
+from time import perf_counter
+from GeoFlood_Filename_Finder import cfg_finder
 
 def _distance(a, b):
     dx = abs(b[0] - a[0])
@@ -80,23 +81,13 @@ def network_split(in_shp, out_shp, split_distance):
 
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
-                                      "GIS", projectName)
-    DEM_name = config.get('Section', 'dem_name')
-    #DEM_name = "DEM"
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
+                                     "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     in_shp = Name_path+ "_channelNetwork.shp"
     out_shp = Name_path+ "_channelSegment.shp"
-    split_distance = 1700
+    split_distance = 1000
     network_split(in_shp, out_shp, split_distance)
 
 

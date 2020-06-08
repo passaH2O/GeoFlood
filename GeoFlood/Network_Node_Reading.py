@@ -4,8 +4,8 @@ import os
 import pandas as pd
 import configparser
 import inspect
-from time import perf_counter 
-
+from time import perf_counter
+from GeoFlood_Filename_Finder import cfg_finder
 
 def network_node_reading(in_shp, node_csv):
 
@@ -30,36 +30,48 @@ def network_node_reading(in_shp, node_csv):
 ##            firstpoint = geom.GetPoint(0)
 ##            start_x_list.append(firstpoint[0])
 ##            start_y_list.append(firstpoint[1])
+
+# To go back to the original script:
+#    1.) Uncomment the if statement in the following for loop and indent the two lines below it.
+#    2.) Delete the second for loop and uncomment the for loop below it.
+
     for i in range(len(from_node_list)):
-        if from_node_list[i] not in to_node_list:
-            start_x_list.append(first_point_list[i][0])
-            start_y_list.append(first_point_list[i][1])
+        #if from_node_list[i] not in to_node_list:
+        start_x_list.append(first_point_list[i][0])
+        start_y_list.append(first_point_list[i][1])
+    end_x_list = []
+    end_y_list = []
     for i in range(len(to_node_list)):
-        if to_node_list[i] not in from_node_list:
-            end_x_list = [last_point_list[i][0]]*len(start_x_list)
-            end_y_list = [last_point_list[i][1]]*len(start_x_list)
+        end_x_list.append(last_point_list[i][0])
+        end_y_list.append(last_point_list[i][1])
+        
+  
+    #for i in range(len(to_node_list)):
+    #    if to_node_list[i] not in from_node_list:
+    #        #end_x_list = [last_point_list[i][0]]*len(start_x_list)
+    #        #end_y_list = [last_point_list[i][1]]*len(start_x_list)
+         
     df = pd.DataFrame({"RiverID": list(range(1, len(start_x_list)+1)),
                        "START_X": start_x_list,
                        "START_Y": start_y_list,
                        "END_X": end_x_list,
                        "END_Y": end_y_list})
+    
     df = df[["RiverID", "START_X", "START_Y", "END_X", "END_Y"]]
     df.to_csv(node_csv, index=False)
-
+    print(df)
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    DEM_name = config.get('Section', 'dem_name')
-    geofloodInputDir = os.path.join(geofloodHomeDir, "Inputs",
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()   
+    #config = configparser.ConfigParser()
+    #config.read(os.path.join(os.path.dirname(os.getcwd()),'GeoFlood.cfg'))
+    #geofloodHomeDir = config.get('Section', 'geofloodhomedir')
+    #projectName = config.get('Section', 'projectname')
+    #DEM_name = config.get('Section', 'dem_name')
+    geofloodInputDir = os.path.join(geofloodHomeDir, input_fn,
                                     "GIS", projectName) 
     flowline_shp = os.path.join(geofloodInputDir, "Flowline.shp")
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
                                       "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     node_csv = Name_path + '_endPoints.csv'

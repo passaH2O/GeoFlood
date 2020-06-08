@@ -6,9 +6,10 @@ import pandas as pd
 from datetime import datetime
 import csv
 import configparser
+import argparse
 import inspect
 from time import perf_counter 
-#import pytz
+from GeoFlood_Filename_Finder import cfg_finder
 
 # read input NOAA NWM netcdf file
 def readForecast(in_nc, df_netmap):
@@ -59,11 +60,12 @@ def forecastH (init_timestr, timestr, hp_input, stage_output):
     hpdata = pd.read_csv(hp_input)
     h = np.zeros_like(Qs, dtype=float)
     for i in range(len(comids)):
-        Qs[i] = 500
+        #Qs[i] = 510 ### Uvalde: 4247.52705 ### Bastrop: 3433 ### Kimble 6384.3945584048915 ### Harris: 1799.9320627079999 ### Colorado: 4479.3287
         h_array = hpdata[hpdata['CatchId'] == comids[i]]['Stage'].values
         q_array = hpdata[hpdata['CatchId'] == comids[i]]['Discharge (m3s-1)'].values
         h[i] = np.interp(Qs[i], q_array, h_array, right=-9999)
     # save forecast output
+    print(q_array.dtype)
     saveForecast(init_timestr, timestr, stage_output) 
 
 
@@ -105,38 +107,25 @@ h = None # hash table for Q forecast lookup, indexed by COMID (station id)
 
 
 if __name__ == '__main__':
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
-    Name_path = os.path.join(geofloodHomeDir, "Outputs",
-                             "Hydraulics", projectName)
-    hp_input = os.path.join(Name_path, "hydroprop-fulltable.csv")
-    Name_path = os.path.join(geofloodHomeDir, "Inputs", "NWM")
-    product_type = config.get('Section', 'product_type')
-    #product_type = "short_range"
-    date = config.get('Section', 'date')
-    #date = "180902"
-    nwmfn = config.get('Section', 'nwmfn')
-    #nwmfn = "nwm.t02z.short_range.channel_rt.f001.conus.nc"
-    nwm_input = os.path.join(Name_path, product_type, date, nwmfn)
-    DEM_name = config.get('Section', 'dem_name')
-    #DEM_name = "DEM"
-    Name_path = os.path.join(geofloodHomeDir, "Outputs", "GIS", projectName)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('nwm',help='Path to NWM input NetCDF',type=str)
+    args = parser.parse_args()
+    if (args.nwm[-3:]!='.nc'):
+    	print('Not a valid NetCDF file or missing .nc extension')
+    else:
+    	nwmfn = args.nwm 
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    Name_path_hydro = os.path.join(geofloodHomeDir, output_fn, "Hydraulics",projectName)
+    hp_input = os.path.join(Name_path_hydro, "hydroprop-fulltable.csv")  
+    Name_path = os.path.join(geofloodHomeDir, output_fn, "GIS", projectName)
     netmap_table = os.path.join(Name_path, DEM_name)+ "_networkMapping.csv"
     df_netmap = pd.read_csv(netmap_table)
-    Name_path = os.path.join(geofloodHomeDir, "Outputs", "NWM")
-    nwm_current_folder = os.path.join(Name_path, product_type, date)
+    Name_path = os.path.join(geofloodHomeDir, output_fn, "NWM",projectName)
+    nwm_current_folder = Name_path
     if not os.path.exists(nwm_current_folder):
         os.mkdir(nwm_current_folder)
-    stage_output = os.path.join(nwm_current_folder, nwmfn)
-    tobj = readForecast(nwm_input, df_netmap) # read forecast, set up hash table
+    stage_output = os.path.join(nwm_current_folder, os.path.basename(nwmfn))
+    tobj = readForecast(nwmfn, df_netmap) # read forecast, set up hash table
     timestr = tobj['timestamp']
     init_timestr = tobj['init_timestamp']
     forecastH(init_timestr, timestr, hp_input, stage_output)
-

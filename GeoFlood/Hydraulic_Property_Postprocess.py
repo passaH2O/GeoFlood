@@ -4,29 +4,19 @@ import pandas as pd
 import configparser
 import inspect
 from time import perf_counter 
-
+from GeoFlood_Filename_Finder import cfg_finder
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
-    Name_path = os.path.join(geofloodHomeDir, "Outputs",
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    Name_path = os.path.join(geofloodHomeDir, output_fn,
                              "Hydraulics", projectName)
     hydropropotxt = os.path.join(Name_path, "hydroprop-basetable.csv")
-    manning_n = os.path.join(geofloodHomeDir, "Inputs",
+    manning_n = os.path.join(geofloodHomeDir, input_fn,
                              "Hydraulics", projectName,
                              "COMID_Roughness.csv") 
     handpropotxt = os.path.join(Name_path, "hydroprop-fulltable.csv")
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
                                       "GIS", projectName)
-    DEM_name = config.get('Section', 'dem_name')
-    #DEM_name = "DEM"
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     networkmaptxt = Name_path + "_networkMapping.csv"
     df_result = pd.read_csv(hydropropotxt)
@@ -35,15 +25,11 @@ def main():
         df_result['Roughness'] = manning_n
     else:
         df_n = pd.read_csv(manning_n)
-        print(df_n)
         df_network = pd.merge(df_network, df_n,
-                              on='COMID')
-        print(df_network)                      
+                          on='COMID')                      
         df_result = pd.merge(df_result, df_network,
                              left_on='CatchId',
-                             right_on='HYDROID')
-        print(df_result)                     
-                             
+                             right_on='HYDROID')                                          
     df_result = df_result.drop('HYDROID', axis=1).rename(columns=lambda x: x.strip(" "))
     df_result['TopWidth (m)'] = df_result['SurfaceArea (m2)']/df_result['LENGTHKM']/1000
     df_result['WettedPerimeter (m)'] = df_result['BedArea (m2)']/df_result['LENGTHKM']/1000
@@ -54,6 +40,9 @@ def main():
     pow(df_result['HydraulicRadius (m)'],2.0/3)* \
     pow(df_result['SLOPE'],0.5)/df_result['Roughness']
     df_result['FloodAreaRatio'] = df_result['SurfaceArea (m2)']/df_result['AREASQKM']/1000000
+    if df_result['Discharge (m3s-1)'].isna().sum() == len(df_result):
+    	print('Empty DataFrame, check hydroprop basetable and make sure COMID is in \
+    		the COMID_Roughness csv')
     df_result.to_csv(handpropotxt,index=False)
 
 

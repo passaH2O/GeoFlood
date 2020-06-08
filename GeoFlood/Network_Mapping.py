@@ -6,7 +6,7 @@ import gdal, osr
 import configparser
 import inspect
 from time import perf_counter 
-
+from GeoFlood_Filename_Finder import cfg_finder
 
 
 def network_mapping(cat_shp, seg_shp, map_csv):
@@ -28,25 +28,16 @@ def network_mapping(cat_shp, seg_shp, map_csv):
                 hydroid_list.append(hydroid)
                 comid_list.append(comid)
     df = pd.DataFrame({"HYDROID" : hydroid_list, "COMID" : comid_list})
+    print(len(df))
     df.to_csv(map_csv, index=False, columns=['HYDROID', 'COMID'])
 
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    DEM_name = config.get('Section', 'dem_name')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
-    #DEM_name = "DEM"
-    geofloodInputDir = os.path.join(geofloodHomeDir, "Inputs",
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    geofloodInputDir = os.path.join(geofloodHomeDir, input_fn,
                                     "GIS", projectName) 
     cat_shp = os.path.join(geofloodInputDir, "Catchment.shp")
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
                                       "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     seg_shp = Name_path + "_channelSegment.shp"

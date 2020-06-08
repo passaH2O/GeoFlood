@@ -7,6 +7,7 @@ import configparser
 import inspect
 from numba import njit
 from time import perf_counter 
+from GeoFlood_Filename_Finder import cfg_finder
 
 
 global d_x, d_y, g_x, g_y, nodata
@@ -167,20 +168,12 @@ def array2raster(newRasterfn,rasterfn,array,datatype):
 
 
 def main():
-    config = configparser.RawConfigParser()
-    #config.read(os.path.join(os.path.dirname(
-        #os.path.dirname(
-            #inspect.stack()[0][1])),
-                             #'GeoFlood.cfg'))
-    config.read(r'C:\Users\alecc\Downloads\GeoNet3_Sept16\GeoNet3_Sept16\GeoNet3\GeoFlood.cfg')
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    DEM_name = config.get('Section', 'dem_name')
-    geofloodInputDir = os.path.join(geofloodHomeDir, "Inputs",
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    geofloodInputDir = os.path.join(geofloodHomeDir, input_fn,
                                     "GIS", projectName) 
     flowline_shp = os.path.join(geofloodInputDir, "Flowline.shp")
     demfn = os.path.join(geofloodInputDir, DEM_name+".tif")
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
                                       "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     nhdfn = Name_path + '_nhdflowline.tif'
@@ -198,4 +191,4 @@ if __name__ == '__main__':
     t0 = perf_counter()
     main()
     t1 = perf_counter()
-    print(("time taken to detect end points:", t1-t0, " seconds"))
+    print(f"Time taken for Negative Height Calculation: {t1-t0} seconds")
