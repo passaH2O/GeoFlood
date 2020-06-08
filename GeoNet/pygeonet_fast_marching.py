@@ -25,8 +25,6 @@ def Fast_Marching_Start_Point_Identification(outlet_array, basinIndexArray):
     n_test=basinIndexArray[fastMarchingStartPointList[0,:],
     				fastMarchingStartPointList[1,:]]
     
-    print(n_test)
-    #print(meow)
     for label in range(0,len(fastMarchingStartPointList[0])):
         outletbasinIndex = basinIndexArray[fastMarchingStartPointList[0,label],
                                            fastMarchingStartPointList[1,label]]
@@ -123,10 +121,9 @@ def Fast_Marching(fastMarchingStartPointListFMM, basinIndexArray, flowArray, rec
 ##        outletsxx = fastMarchingStartPointList[1,i]
 ##        outletsyy = fastMarchingStartPointList[0,i]
         # call the fast marching here
-        #phi = np.nan * np.ones((reciprocalLocalCostArray.shape))
+        #phi = np.nan * np.ones((reciprocalLocalCostArray.shape)) # old
         phi = np.empty(reciprocalLocalCostArray.shape)
-
-        #speed = np.ones((reciprocalLocalCostArray.shape))* np.nan
+        #speed = np.ones((reciprocalLocalCostArray.shape))* np.nan # old
         speed = np.empty(reciprocalLocalCostArray.shape)
         phi[maskedBasinFAC!=0] = 1
         speed[maskedBasinFAC!=0] = reciprocalLocalCostArray[maskedBasinFAC!=0]    

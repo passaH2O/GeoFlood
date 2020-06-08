@@ -109,6 +109,7 @@ def lambda_nonlinear_filter(nanDemArray):
     # Computation of the threshold lambda used in Perona-Malik nonlinear
     # filtering. The value of lambda (=edgeThresholdValue) is given by the 90th
     # quantile of the absolute value of the gradient.
+
     print ('Computing lambda = q-q-based nonlinear filtering threshold')
     slopeMagnitudeDemArray = slopeMagnitudeDemArray.flatten()
     slopeMagnitudeDemArray = slopeMagnitudeDemArray[~np.isnan(

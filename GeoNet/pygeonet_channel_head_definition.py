@@ -1,6 +1,6 @@
 import numpy as np
-from scipy import ndimage
 import time
+from scipy import ndimage
 from time import clock
 from pygeonet_rasterio import *
 from pygeonet_vectorio import *

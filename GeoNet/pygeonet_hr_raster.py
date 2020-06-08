@@ -25,11 +25,13 @@ def main():
     
     # Read in High Resolution Flowline as GeoPandas DataFrame
     flowline_hr_shp = gpd.read_file(flowlineHRPath)
+
     # Assign some arbitrary value to the geodataframe where the flowline_hr occurs
     flowline_hr_shp['value'] = 1 # Arbitrary number
+
     # Subset the dataframe to just the geometry and value columns
     flowline_hr_shp = flowline_hr_shp[['geometry','value']]
-    flowline_hr_shp.columns
+    
     # Buffer the flowline
     flowline_hr_shp['geometry'] = flowline_hr_shp.geometry.buffer(5)
     skel_fp = os.path.join(outfilepath,skel_filename)
@@ -45,7 +47,7 @@ def main():
 
     del flowline_hr_shp
     flowline_hr_raster = flowline_hr_raster.astype(np.uint8)
-    print(flowline_hr_raster.dtype)
+    
     # Write out High Resolution flowlines
     outfilename = demName.split('.')[0] + '_NHD_HR.tif'
     write_geotif_skeleton(flowline_hr_raster,

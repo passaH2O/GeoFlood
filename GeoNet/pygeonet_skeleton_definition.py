@@ -1,13 +1,10 @@
 from __future__ import division
 import numpy as np
+import rasterio
+from rasterio import features
 from time import perf_counter 
 from pygeonet_rasterio import *
 from pygeonet_plot import *
-#import fiona
-#import geopandas as gpd
-import rasterio
-from rasterio import features
-#from numba import njit
 
 # Skeleton by thresholding one grid measure e.g. flow or curvature
 def compute_skeleton_by_single_threshold(inputArray, threshold):

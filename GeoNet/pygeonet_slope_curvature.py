@@ -1,10 +1,10 @@
 from __future__ import division
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
-from scipy import stats
-from time import perf_counter 
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from scipy import stats
+from time import perf_counter 
 from pygeonet_rasterio import *
 from pygeonet_plot import *
 
