@@ -1,10 +1,10 @@
 from __future__ import division
 import os
 import numpy as np
-from scipy import stats
-from osgeo import gdal,ogr
 import configparser
 import inspect
+from scipy import stats
+from osgeo import gdal,ogr
 from time import perf_counter 
 from GeoFlood_Filename_Finder import cfg_finder
 
@@ -50,7 +50,7 @@ def river_attribute_estimation(segment_shp, segcatfn,
     # Initialize Counter for the for loop iterations
     ac_iter = 0
 
-    # Initialize lists to hold each iterations z and m values. Each loop will append to the list.
+    # Initialize lists to hold each iterations z and m values. Used for correcting negative slopes.
     z_array_dummy = []
     m_array_dummy = []
     slope_array_dummy = []
@@ -84,10 +84,9 @@ def river_attribute_estimation(segment_shp, segcatfn,
  
         # Append the current iteration to the dummy/container array.
         m_array_dummy.append(m_array)
-        # Convert to a numpy array of arrays instead of a list of arrays. This allows it to be indexed numerically.
         m_array_dummy_np = np.asarray(m_array_dummy) 
 
-        # Same instructions used for the 'm_array_dummy' variable are done in the follwing two lines for z.
+        
         z_array_dummy.append(z_array)
         z_array_dummy_np = np.asarray(z_array_dummy)
 
@@ -103,18 +102,16 @@ def river_attribute_estimation(segment_shp, segcatfn,
         slope_array_dummy_np = np.asarray(slope_array_dummy)
         
         
-        ###### Correcting Negative and Hydroflattened Slopes: Cycles through previous reaches until the regression slope is positive.
+        ###### Correcting Negative and Hydroflattened Slopes: Cycles through upstream reaches until the regression slope is positive.
         ###### A value of 0.000001 was chosen as the cut off as not all hydroflattened reaches have a slope of exactly zero, i.e. 9x10^-9. 
         ###### As a result, any value below the threshold chosen will recompute the regression line with its upstream reaches until the 
         ###### slope becomes positive or there are no more reaches to cycle through. If the latter occurs, a slope of 0.00001 is assigned.
 
+        ###### From my experience, it usually takes no more than one or two upstream reaches to get a positive
+        ###### slop.
+
         subtraction_iter = 1
         while slope <= 0.000001 and ac_iter>0:
-            
-            # Append upstream segments to the beginning of the array until the slope from the regression equation is positive.
-            # The subtraction_iter term increases with every iteration, so the dummy array's will be sliced from that
-            # new array (an older entry) to the current array (the last entry in the array).
-
                     
             previous_reach_index = ac_iter - subtraction_iter
             z_array_test = np.concatenate(z_array_dummy_np[previous_reach_index:])

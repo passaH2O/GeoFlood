@@ -31,7 +31,7 @@ def network_node_reading(in_shp, node_csv):
 ##            start_x_list.append(firstpoint[0])
 ##            start_y_list.append(firstpoint[1])
 
-# To go back to the original script:
+# To go back to the original version:
 #    1.) Uncomment the if statement in the following for loop and indent the two lines below it.
 #    2.) Delete the second for loop and uncomment the for loop below it.
 
@@ -63,11 +63,6 @@ def network_node_reading(in_shp, node_csv):
 
 def main():
     geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()   
-    #config = configparser.ConfigParser()
-    #config.read(os.path.join(os.path.dirname(os.getcwd()),'GeoFlood.cfg'))
-    #geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    #projectName = config.get('Section', 'projectname')
-    #DEM_name = config.get('Section', 'dem_name')
     geofloodInputDir = os.path.join(geofloodHomeDir, input_fn,
                                     "GIS", projectName) 
     flowline_shp = os.path.join(geofloodInputDir, "Flowline.shp")

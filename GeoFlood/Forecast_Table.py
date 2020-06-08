@@ -3,11 +3,11 @@ import sys, os, string, time, re, getopt, glob, shutil, math
 import netCDF4
 import numpy as np
 import pandas as pd
-from datetime import datetime
 import csv
 import configparser
 import argparse
 import inspect
+from datetime import datetime
 from time import perf_counter 
 from GeoFlood_Filename_Finder import cfg_finder
 

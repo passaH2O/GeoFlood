@@ -101,7 +101,6 @@ def Channel_Reconstruct(geodesicPathsCellDic, numberOfEndPoints):
     jx = []
     jy = []
     k = 0
-    #print(f'Entries in Original Dictionary: {len(geodesicPathsCellDic)}')
     for i in range(0,numberOfEndPoints):
         for j in range(0,geodesicPathsCellDic[str(i)][0].size):
             # If Statement: Checking if the cell being looped through has an index of zero.
@@ -120,10 +119,6 @@ def Channel_Reconstruct(geodesicPathsCellDic, numberOfEndPoints):
                     NewgeodesicPathsCellDic[str(k)][0].append(geodesicPathsCellDic[str(i)][0,j])
                     NewgeodesicPathsCellDic[str(k)][1].append(geodesicPathsCellDic[str(i)][1,j])
                     
-                #elif size_sr[geodesicPathsCellDic[str(i)][0,j],geodesicPathsCellDic[str(i)][1,j]] != size_sr[geodesicPathsCellDic[str(i)][0,j-1],geodesicPathsCellDic[str(i)][1,j-1]]:
-                #    NewgeodesicPathsCellDic[str(k)][0].append(geodesicPathsCellDic[str(i)][0,j])
-                #    NewgeodesicPathsCellDic[str(k)][1].append(geodesicPathsCellDic[str(i)][1,j])
-                
                 # When this condition is satisfied, additional start points are added to the 
                 # 'StartpointList' variable. This leads to unwanted segmentation of the
                 # extracted channel network.
@@ -232,7 +227,7 @@ def main():
     src_fac = rasterio.open(facfn)
     src_curv = rasterio.open(curvaturefn)
     src_neghand = rasterio.open(handfn)
-    if (os.path.exists(hr_fn)) and (hr_status==1): # HR raster from hr_raster.py script
+    if (os.path.exists(hr_fn)) and (hr_status==1): # HR raster from pygeonet_hr_raster.py script
     	src_hr = rasterio.open(hr_fn)
 
     dem_shape = src_curv.shape
