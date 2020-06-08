@@ -62,7 +62,7 @@ Note: If you need to switch back and forth between projects, change the "project
 
 For example, if I'm  working on project "blah" and need to go back to project "test", change the                                         'project_cfg_pointer' variable within the pointer cfg file:
     
-    project_cfg_pointer = <path\to\project_blah_home\GeoFlood_blah.cfg> ---> project_cfg_pointer<path\to\project_test_home\GeoFlood_test.cfg>
+    project_cfg_pointer = <path\to\project_blah_home\GeoFlood_blah.cfg> ---> project_cfg_pointer = <path\to\project_test_home\GeoFlood_test.cfg>
 
 # GeoNet Workflow
 ### 1. DEM smoothing
