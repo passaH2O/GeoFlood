@@ -39,7 +39,7 @@ def cmd_inputs():
 		print(home_dir)	
 	else:
 		ab_path = os.path.abspath(__file__)
-		home_dir = os.path.dirname(ab_path)
+		home_dir = os.path.dirname(os.path.dirname(ab_path))
 		print(' ')
 		print('Using default GeoNet and GeoFlood home directory:')
 		print(home_dir)
