@@ -62,12 +62,32 @@ if not os.path.exists(inun_dir):
 demDataFilePath = os.path.join(geoNetHomeDir, inputs_name,
        	                      "GIS", projectName)
 
+# Moving COMID Roughness and stage files to the proper directory
+geonet3_fp = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+comid_orig_fp = os.path.join(geonet3_fp,'COMID_Roughness.csv')
+stage_orig_fp = os.path.join(geonet3_fp,'stage.txt')
+
+comid_target_fp = os.path.join(geoNetHomeDir,inputs_name,"Hydraulics",projectName,"COMID_Roughness.csv")
+stage_target_fp = os.path.join(geoNetHomeDir,inputs_name,"Hydraulics",projectName,"stage.txt")
+
+# Copy COMID to project hydraulics directory
+if os.path.exists(comid_orig_fp):
+	shutil.copyfile(comid_orig_fp,comid_target_fp)
+else:
+	print("Could not find 'COMID_Roughness.csv")
+
+# Copy stage to project hydraulics directory
+if os.path.exists(stage_orig_fp):
+	shutil.copyfile(stage_orig_fp,stage_target_fp)
+else:
+	print("Could not find 'stage.txt")
+
+# Define variables to be used throughout GeoNet/GeoFlood workflow
 flowlineMRFileName = 'Flowline.shp'
-#channelheadFileName = "Hou_weights.tif"
-#channeljunctionFileName = "junction.shp"
 geonetResultsDir = os.path.join(geoNetHomeDir, outputs_name,
        	                       "GIS", projectName)
 geonetResultsBasinDir = os.path.join(geoNetHomeDir, "basinTiffs")
+
 # Write shapefile file paths
 shapefilepath = os.path.join(geoNetHomeDir, outputs_name, "GIS", projectName)
 driverName = "ESRI Shapefile"
