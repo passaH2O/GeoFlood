@@ -50,11 +50,11 @@ GeoNet3
       - my_project
     - NWM
       - my_project
-  - *GeoFlood_[project_name].cfg*   **(Project specific cfg)**
+  - *GeoFlood_[project_name].cfg*        **(Project specific cfg. Will be placed wherever "-dir" was specified as)**
   
 Place **dem.tif** into the:
 
-*GeoInputs\GIS\my_project* 
+*...\GeoInputs\GIS\my_project* 
 
 directory that was just created.
 
@@ -70,7 +70,7 @@ For example, if I'm  working on project "blah" and need to go back to project "t
 python pygeonet_nonlinear_filter.py
 ```
 
-*Outputs: <...GeoOutputs\GIS\my_project\PM_filtered_grassgis.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\PM_filtered_grassgis.tif>*
 
 Perona-Malik non-linear smoothing/diffusion image filter with 50 iterations. Edit the 'nFilterIterations' variable in the **pygeonet_defaults.py** script if a different number of iterations needs to be used. 
 
@@ -79,8 +79,8 @@ Perona-Malik non-linear smoothing/diffusion image filter with 50 iterations. Edi
 python pygeonet_slope_curvature.py
 ```
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_slope.tif>*
-         *<...GeoOutputs\GIS\my_project\dem_curvature.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_slope.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_curvature.tif>*
 
 A geometric curvature calculation is the default, but can be changed to a laplacian curvature by changing the 'curvatureCalcMethod' in the **pygeonet_defaults.py** script from *geometric* to *laplacian*.
 
@@ -89,10 +89,10 @@ A geometric curvature calculation is the default, but can be changed to a laplac
 python pygeonet_grass_py3.py
 ```
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_fac.tif>* (Flow Accumulation raster based on Multiple Flow Direction raster)
-         *<...GeoOutputs\GIS\my_project\dem_fdr.tif>* (Flow direction raster using Multiple Flow Direction computation method)
-         *<...GeoOutputs\GIS\my_project\dem_basins.tif>* (GRASS GIS desineated catchments for each reach)
-         *<...GeoOutputs\GIS\my_project\dem_outlets.tif>* (GRASS GIS defined outlets for the study area)
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_fac.tif>* (Flow Accumulation raster based on Multiple Flow Direction raster)
+         *<...\GeoOutputs\GIS\my_project\dem_fdr.tif>* (Flow direction raster using Multiple Flow Direction computation method)
+         *<...\GeoOutputs\GIS\my_project\dem_basins.tif>* (GRASS GIS desineated catchments for each reach)
+         *<...\GeoOutputs\GIS\my_project\dem_outlets.tif>* (GRASS GIS defined outlets for the study area)
 
 
 ### 4. Flow Accumulation and Curvature Skeleton
@@ -105,16 +105,39 @@ The flow accumulation threshold used in this script can be adjusted by changing 
 
 Outputs:
 
-         *<...GeoOutputs\GIS\my_project\dem_skeleton.tif>*`
-         *<...GeoOutputs\GIS\my_project\dem_flowskeleton.tif>*
-         *<...GeoOutputs\GIS\my_project\dem_curvatureskeleton.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_skeleton.tif>*`
+         *<...\GeoOutputs\GIS\my_project\dem_flowskeleton.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_curvatureskeleton.tif>*
          
+         
+### 5. Geodesic Distance and Fast Marching
+```
+python pygeonet_fast_marching.py
+```
+
+Outputs:
+         *<...\GeoOutputs\GIS\my_project\dem_geodesicDistance.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_costfunction.tif>*
+         
+Utilizes the "outlets" and "basins" outputs from step four to identify likely starting points for the fast marching algorithm. With a slightly different cost function from the one used in GeoFlood's network extraction script, a fast marching algorithm is implemented to calculate the geodesic distance, from the previously identified starting points, across the entire raster. Relative to the range of values calculated, the lowest geodesic distances denote a channel and increase as the distance from the channel increases.
+
+### 6. Channel Head Identification
+```
+python pygeonet_channel_head_definition.py
+```
+
+Outputs:
+         *<...\GeoOutputs\GIS\my_project\dem_channelHeads.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_channelHeads.shp>*
+
+Identifies channel heads using the "skeleton" and "geodesicDistance" rasters by identifying pixels that satisfy the skeleton threshold criteria and have the minimum geodesic distance within a set search box window.
+       
 ### 5. NHD HR Flowline Raster [OPTIONAL]
 ```
 python pygeonet_hr_raster.py <path\to\nhd_hr_shapefile\shape.shp>
 ```
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_NHD_HR.tif>* (Rasterized version of NHD HR Flowline to be used in network extraction)
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_NHD_HR.tif>* (Rasterized version of NHD HR Flowline to be used in network extraction)
 
 The required input to this script is the file path to the NHD_HR_flowline shapefile you wish to use. The path specified should end with the name of the shapefile including the ".shp". All other metadata related files for the shapefile should be located in the same folder.
 
@@ -129,7 +152,7 @@ or
 From these downloads, you specifically need the shapefiles of NHD MR Flowlines and their associated catchments. To do this, navigate to the NFIE folder you downloaded within any GIS software (QGIS,ArcGIS Pro, ArcMap,...) and upload the flowline and catchments of interest. The shapefiles of interest can then be extracted.
 
 **Place the extracted flowline and catchment shapefiles into:**
-*<...GeoInputs\GIS\my_project>* 
+*<...\GeoInputs\GIS\my_project>* 
 
 Please name the flowline shapefile: "Flowline.shp" (rename all extensions)
 Please name the catchment shapefile: "Catchment.shp" (rename all extensions)
@@ -148,16 +171,16 @@ This script will output a csv containing the start and end points of the flowlin
 
 Returns a binary raster/array with values of 1 given to pixels at a lower elevation than the elevation associated with NHD MR Flowline pixels. A value of zero is given to all other pixels in the image, i.e. pixels at a higher elevation than the NHD MR Flowlines
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_NegaHand.tif>* (binary raster described above)*
-         *<...GeoOutputs\GIS\my_project\dem_Allocation.tif> (elevation comparison raster)*
-         *<...GeoOutputs\GIS\my_project\dem_nhdflowline.tif> (raster of burned in/etched "Flowline.shp")*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_NegaHand.tif>* (binary raster described above)*
+         *<...\GeoOutputs\GIS\my_project\dem_Allocation.tif> (elevation comparison raster)*
+         *<...\GeoOutputs\GIS\my_project\dem_nhdflowline.tif> (raster of burned in/etched "Flowline.shp")*
 
 ### 8. Network Extraction
 `python Network_Extraction.py`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_channelNetwork.shp>*
-         *<...GeoOutputs\GIS\my_project\dem_path.tif>*
-         *<...GeoOutputs\GIS\my_project\dem_cost.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_channelNetwork.shp>*
+         *<...\GeoOutputs\GIS\my_project\dem_path.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_cost.tif>*
 
 Shape file of extracted channel network, raster of extracted network, and a raster of the "cost" associated with each pixel.
 
@@ -183,31 +206,31 @@ For the GeoNet/GeoFlood workflow the following functions are used:
 The following commands were all ran from the command line/anaconda prompt.
 
 ### 9. Pit Filling
-`mpiexec -n [integer value representing the number of proceses to use] <...GeoNet3\TauDEM\pitremove> -z <...GeoInputs\GIS\my_project\dem.tif> -fel <...GeoOutputs\GIS\my_project\dem_fel.tif>`
+`mpiexec -n [integer value representing the number of proceses to use] <...\GeoNet3\TauDEM\pitremove> -z <...\GeoInputs\GIS\my_project\dem.tif> -fel <...\GeoOutputs\GIS\my_project\dem_fel.tif>`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_fel.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_fel.tif>*
 
 Pit removed/filled DEM.
 
 ### 10. D-Infinity Flow Direction:
-`mpiexec -n [integer value representing the number of proceses to use] <...GeoNet3\TauDEM\dinfflowdir> - fel <...GeoOutputs\GIS\my_project\dem_fel.tif> -ang <...GeoOutputs\GIS\my_project\dem_ang.tif> -slp <...GeoOutputs\GIS\my_project\dem_slp.tif>`
+`mpiexec -n [integer value representing the number of proceses to use] <...\GeoNet3\TauDEM\dinfflowdir> - fel <...\GeoOutputs\GIS\my_project\dem_fel.tif> -ang <...\GeoOutputs\GIS\my_project\dem_ang.tif> -slp <...\GeoOutputs\GIS\my_project\dem_slp.tif>`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_ang.tif>*
-         *<...GeoOutputs\GIS\my_project\dem_slp.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_ang.tif>*
+         *<...\GeoOutputs\GIS\my_project\dem_slp.tif>*
 
 Flow direction raster using D-infinity flow direction method proposed in Tarboton, D. G., (1997). Slope raster resulting from D-infinity flow directions.
 
 ### 11. D-Infinity Flow Accumulation [OPTIONAL]
-`mpiexec -n [integer value representing the number of proceses to use] <...GeoNet3\TauDEM\TauDEM\areadinf> - ang <...GeoOutputs\GIS\my_project\dem_ang.tif> -sca <...GeoOutputs\GIS\my_project\dem_sca.tif>`
+`mpiexec -n [integer value representing the number of proceses to use] <...\GeoNet3\TauDEM\TauDEM\areadinf> - ang <...\GeoOutputs\GIS\my_project\dem_ang.tif> -sca <...\GeoOutputs\GIS\my_project\dem_sca.tif>`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_sca.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_sca.tif>*
 
 Flow accumulation based on D-inf flow directions.
 
 ### 12. Height Above Nearest Drainage
-`mpiexec -n [integer value representing the number of proceses to use] <...GeoNet3\TauDEM\dinfdistdown> - ang <...GeoOutputs\GIS\my_project\dem_ang.tif> -fel <...GeoOutputs\GIS\my_project\dem_fel.tif> -slp <...GeoOutputs\GIS\my_project\dem_slp.tif> -src <...GeoOutputs\GIS\my_project\dem_path.tif> -dd <...GeoOutputs\GIS\my_project\dem_hand.tif> -m ave v`
+`mpiexec -n [integer value representing the number of proceses to use] <...\GeoNet3\TauDEM\dinfdistdown> - ang <...\GeoOutputs\GIS\my_project\dem_ang.tif> -fel <...\GeoOutputs\GIS\my_project\dem_fel.tif> -slp <...\GeoOutputs\GIS\my_project\dem_slp.tif> -src <...\GeoOutputs\GIS\my_project\dem_path.tif> -dd <...\GeoOutputs\GIS\my_project\dem_hand.tif> -m ave v`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_hand.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_hand.tif>*
 
 Height Above Nearest Drainage (HAND) raster
 
@@ -216,57 +239,57 @@ Height Above Nearest Drainage (HAND) raster
 ### 13. Segmenting Extracted Network
 `python Streamline_Segmentation.py`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_channelSegment.shp>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_channelSegment.shp>*
 
 Shape file of segmented channel network.
 
 ### 14. GRASS GIS Catchment Delineation
 `python Grass_Delineation_py3.py`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_segmentCatchment.tif>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_segmentCatchment.tif>*
 
 Raster of catchments/drainage areas associated with each channel segment.
 
 ### 15. River Attribute Estimation
 `python River_Attribute_Estimation.py`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_segmentCatchment.shp> (Shape file of segmented catchments)*
-         *<...GeoOutputs\Hydraulics\my_project\dem_River_Attribute.txt>*
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_segmentCatchment.shp> (Shape file of segmented catchments)*
+         *<...\GeoOutputs\Hydraulics\my_project\dem_River_Attribute.txt>*
 
 Stream Segment attributes: feature ID, slope, length, square area.
 
 ### 16. Network Mapping
 `python Network_Mapping.py`
 
-*Outputs: <...GeoOutputs\GIS\my_project\dem_networkMapping.csv>* 
+*Outputs: <...\GeoOutputs\GIS\my_project\dem_networkMapping.csv>* 
 
 Associates "Catchment.shp" feauture IDs to each reach segment. Essentially it assigns the appropriate COMID to each segmented reach.
 
 ### 17. Hydraulic Property Base Table **(TAUDEM)**
-`mpiexec -n [integer value representing the number of proceses to use] <...GeoNet3\TauDEM\catchhydrogeo> - hand <...GeoOutputs\GIS\my_project\dem_hand.tif> -catch <...GeoOutputs\GIS\my_project\dem_segmentCatchment.tif> -catchlist <...GeoOutputs\Hydraulics\my_project\dem_River_Attribute.txt> -slp <...GeoOutputs\GIS\my_project\dem_slp.tif> -h <...GeoInputs\Hydraulics\my_project\stage.txt> -table <...GeoOutputs\Hydraulics\my_project\hydroprop-basetable.csv>`
+`mpiexec -n [integer value representing the number of proceses to use] <...\GeoNet3\TauDEM\catchhydrogeo> - hand <...\GeoOutputs\GIS\my_project\dem_hand.tif> -catch <...\GeoOutputs\GIS\my_project\dem_segmentCatchment.tif> -catchlist <...\GeoOutputs\Hydraulics\my_project\dem_River_Attribute.txt> -slp <...\GeoOutputs\GIS\my_project\dem_slp.tif> -h <...\GeoInputs\Hydraulics\my_project\stage.txt> -table <...\GeoOutputs\Hydraulics\my_project\hydroprop-basetable.csv>`
 
-*Outputs: <...GeoOutputs\Hydraulics\my_project\hydroprop-basetable.csv>* 
+*Outputs: <...\GeoOutputs\Hydraulics\my_project\hydroprop-basetable.csv>* 
 
 Calculates Hydraulic properties, i.e. surface area, bed area, and volume based on the stage height. Stage height is iterated through with the range specified in the "stage.txt" file)
 
 ### 18. Hydraulic Property Full Table (More channel Geometries)
 `python Hydraulic_Property_Postprocess.py`
 
-*Outputs: <...GeoOutputs\Hydraulics\my_project\hydroprop-fulltable.csv>*
+*Outputs: <...\GeoOutputs\Hydraulics\my_project\hydroprop-fulltable.csv>*
 
 Assigns a Manning's roughness coefficient to each segment based on stream order and calculates: top width (m), wetted perimeter (m), wetted area (m2), and hydraulic radius (m).
 
 ### 19. National Water Model Forecast
 `python Forecast_Table.py <path\to\nwm_forecast\nwm....conus.nc>`
 
-*Outputs: <...GeoOutputs\NWM\my_project\nwm.....conus.csv>*
-         *<...GeoOutputs\NWM\my_project\nwm.....conus.nc>*
+*Outputs: <...\GeoOutputs\NWM\my_project\nwm.....conus.csv>*
+         *<...\GeoOutputs\NWM\my_project\nwm.....conus.nc>*
 
 The NWM folder within GeoInputs was made with the intent that NWM forecasts would be stored there, but if a different location is preferred, that is perfectly fine. Assigns NWM forecasted discharge to each channel segment based on COMID.
 
 ### 20. Inundation Map **(TAUDEM)**
-`mpiexec -n [integer value representing the number of proceses to use] <...GeoNet3\TauDEM\inunmap> -hand <...GeoOutputs\GIS\my_project\dem_hand.tif> -catch <...GeoOutputs\GIS\my_project\dem_segmentCatchment.tif> -forecast <...\GeoOutputs\NWM\my_project\nwm......conus.nc> -mapfile <...GeoOutputs\Inundation\my_project\dem_NWM_inunmap.tif>`
+`mpiexec -n [integer value representing the number of proceses to use] <...\GeoNet3\TauDEM\inunmap> -hand <...\GeoOutputs\GIS\my_project\dem_hand.tif> -catch <...\GeoOutputs\GIS\my_project\dem_segmentCatchment.tif> -forecast <...\GeoOutputs\NWM\my_project\nwm......conus.nc> -mapfile <...\GeoOutputs\Inundation\my_project\dem_NWM_inunmap.tif>`
 
-*Outputs: <...GeoOutputs\Inundation\my_project\dem_NWM_inunmap.tif>*
+*Outputs: <...\GeoOutputs\Inundation\my_project\dem_NWM_inunmap.tif>*
 
 Generates an inundation map using the HAND raster for the study area, the delineated catchments associated with each segment, and the NWM forecast for the time frame of interest.
