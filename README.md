@@ -8,8 +8,13 @@ GeoNet3
   - TauDEM
   - *COMID_Roughness.csv*
   - *stage.txt*
-  - *GeoF.yml (Anaconda environment setup)*
-  - *Requirements.txt (All packages used)*
+  - *GeoF.yml (Conda environment setup)*
+  - *Requirements.txt*
+  
+# Environment
+```
+conda create env --file GeoF.yml
+```
   
 # Configuration 
 Navigate to the *GeoNet* directory
