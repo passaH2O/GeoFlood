@@ -13,7 +13,7 @@ GeoNet3
   
 # Environment
 ```
-conda create env --file GeoF.yml
+conda create env --file geofloodenv.yml
 ```
   
 # Configuration 
