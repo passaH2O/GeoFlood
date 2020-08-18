@@ -32,7 +32,7 @@ All of the arguments to this configuration script are optional. Arguments:
 - --no_chunk: If passed as an argument, DEM's larger than 1.5 GB will **NOT** be chunked/batch processed during the *Network_Extraction.py* script. DEM's of this size can cause memory errors when processed all at once on a local machine. The default is to chunk DEMs larger than the 1.5 GB threshold.
 - --input_dir: Name of Inputs folder to be held in the "-dir" directory. Default is "GeoInputs".
 - --output_dir: Name of Outputs folder to be held in the "-dir" directory/ Default is "GeoOutputs".
-- --no_hr: If passed as an argument, an NHD HR flowline raster will not be used in the cost function for "Network_Extraction.py". Default is to use the HR raster if it is found.
+- --channel_type: 1: Channel Extraction with NHD HR Raster; 0: Channel Extraction with NHD MR Raster; -1: Channel Extraction with only DEM Features
 
 The "pointer" configuration file will be placed in the *<.../GeoNet3/GeoNet/>* directory. The project specific configuration file will be placed in the default or user specified "geofloodhomedir" directory.
 
