@@ -5,8 +5,9 @@ from osgeo import ogr
 import gdal, osr
 import configparser
 import inspect
-from time import perf_counter 
-
+import geopandas as gpd
+from time import perf_counter
+from GeoFlood_Filename_Finder import cfg_finder
 
 def _distance(a, b):
     dx = abs(b[0] - a[0])
@@ -18,6 +19,10 @@ def split_line_single(line, length):
     line_points = line.GetPoints()
     sub_line = ogr.Geometry(ogr.wkbLineString)
     while length > 0:
+        #if (len(line_points)<=1):
+        #    sub_line.AddPoint(*line_points[0])
+        #    length = 0
+        #else:
         d = _distance(line_points[0], line_points[1])
         if d >= length:
             sub_line.AddPoint(*line_points[0])
@@ -45,6 +50,7 @@ def network_split(in_shp, out_shp, split_distance):
     output_layer.CreateField(ogr.FieldDefn("HYDROID", ogr.OFTInteger))
     output_layer.CreateField(ogr.FieldDefn("Length", ogr.OFTReal))
     HydroID = 1
+    
     for feature in layer:
         line = feature.GetGeometryRef()
         no_segments = int(math.ceil(line.Length() / split_distance))
@@ -59,8 +65,9 @@ def network_split(in_shp, out_shp, split_distance):
             feat.Destroy()
         else:
             length = line.Length()/no_segments
+            
             remainder = line
-            for i in range(no_segments-1):
+            for i in range(no_segments-1): 
                 segment, remainder = split_line_single(remainder, length)
                 feat = ogr.Feature(output_layer.GetLayerDefn())
                 feat.SetGeometry(segment)
@@ -80,24 +87,18 @@ def network_split(in_shp, out_shp, split_distance):
 
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    #geofloodHomeDir = "H:\GeoFlood"
-    #projectName = "Test_Stream"
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
-                                      "GIS", projectName)
-    DEM_name = config.get('Section', 'dem_name')
-    #DEM_name = "DEM"
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
+                                     "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     in_shp = Name_path+ "_channelNetwork.shp"
     out_shp = Name_path+ "_channelSegment.shp"
-    split_distance = 1700
+    split_distance = 1000
     network_split(in_shp, out_shp, split_distance)
+    #segment_shp = gpd.read_file(out_shp)
+    #print(type(segment_shp))
+    #segment_shp = segmenet_shp[segment_shp.Length !=0]
+    #segment_shp.to_file(out_shp,driver="ESRI Shapefile")
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ diffusionMethod = 'PeronaMalik2'
 
 diffusionTimeIncrement = 0.1  # this makes the explicit scheme stable
 diffusionSigmaSquared = 0.05
-nFilterIterations = 50 # Nonlinear filtering iterations
+nFilterIterations =  50 # Nonlinear filtering iterations
 
 # Flow routing options and sub basin indexing
 thresholdAreaSubBasinIndexing = 1500
@@ -47,15 +47,17 @@ thresholdAreaSubBasinIndexing = 1500
 reciprocalLocalCostFn = 'flowArray + ' + \
                         'flowMean*skeletonFromFlowAndCurvatureArray' + \
                         ' + flowMean*curvatureDemArray'
+#reciprocalLocalCostFn = 'flowArray + ' + \
+#                        'flowMean*curvatureDemArray'
 doNormalizeCurvature = 1
 reciprocalLocalCostMinimum = 'nan'
 
 # What proportion of the DEM should we track drainage?
 thresholdPercentAreaForDelineation = 0.1
-#demNanFlag = -9999  
-#demErrorFlag = -9999  
-demNanFlag = -3.402823e+038
-demErrorFlag = -3.402823e+038
+demNanFlag = -9998.0 
+demErrorFlag = -9998.0  
+#demNanFlag = -3.402823e+038
+#demErrorFlag = -3.402823e+038
 
 
 # The demSmoothingQuantile is the quantile of landscape we want to smooth and
@@ -65,10 +67,10 @@ demSmoothingQuantile = 0.9
 #curvatureCalcMethod = 'laplacian'
 curvatureCalcMethod = 'geometric'
 thresholdQqCurvature = 0
-flowThresholdForSkeleton = 500
+flowThresholdForSkeleton = 3000
 channelheadPredefined = 0
 
 # Channel head search box size applied on skeleton image
-endPointSearchBoxSize = 30
+endPointSearchBoxSize = 30 # Median hillslope of the input DEM, i.e. the distance between each pixel and the first channelized downslope pixel.
 # Option used in discrete geodesic path finding from channel heads to outlets
 doTrueGradientDescent = 1

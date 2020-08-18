@@ -8,7 +8,7 @@ import pygeonet_prepare as Parameters
 
 # Writing drainage network node (head/junction) shapefiles
 def write_drainage_nodes(xx, yy, node_type, fileName, shapeName):
-    print "Writing", node_type, "shapefile"
+    print(f'Writing {node_type} shapefile')
     # set up the shapefile driver
     driver = ogr.GetDriverByName(Parameters.driverName)
     # This will delete and assist in overwrite of the shape files
@@ -43,7 +43,7 @@ def write_drainage_nodes(xx, yy, node_type, fileName, shapeName):
     layer.CreateField(ogr.FieldDefn("Latitude", ogr.OFTReal))
     layer.CreateField(ogr.FieldDefn("Longitude", ogr.OFTReal))
     # Now add the channel heads as features to the layer
-    for i in xrange(0, len(xxProj)):
+    for i in range(0, len(xxProj)):
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())
         # Set the attributes using the values
@@ -66,7 +66,7 @@ def write_drainage_nodes(xx, yy, node_type, fileName, shapeName):
 
 # Writing drainage paths as shapefile
 def write_drainage_paths(geodesicPathsCellList):
-    print 'Writing drainage paths'
+    print('Writing drainage paths')
     driver = ogr.GetDriverByName(Parameters.driverName)
     if os.path.exists(Parameters.drainagelineFileName):
         driver.DeleteDataSource(Parameters.drainagelineFileName)
@@ -87,7 +87,7 @@ def write_drainage_paths(geodesicPathsCellList):
     field_name = ogr.FieldDefn("Type", ogr.OFTString)
     field_name.SetWidth(24)
     layer.CreateField(field_name)
-    for i in xrange(0, len(geodesicPathsCellList)):
+    for i in range(0, len(geodesicPathsCellList)):
         # Project the linepoints to appropriate projection
         xx = geodesicPathsCellList[i][1]
         yy = geodesicPathsCellList[i][0]
@@ -118,7 +118,7 @@ def write_drainage_paths(geodesicPathsCellList):
 
 # Writing cross section shapefiles
 def write_cross_sections(TotalcrossSectionsXYArray, XSIDArray):
-    print "Writing Cross Sections shapefile"
+    print("Writing Cross Sections shapefile")
     driver = ogr.GetDriverByName(Parameters.driverName)
     if os.path.exists(Parameters.xsFileName):
         driver.DeleteDataSource(Parameters.xsFileName)
@@ -140,7 +140,7 @@ def write_cross_sections(TotalcrossSectionsXYArray, XSIDArray):
     field_name.SetWidth(24)
     layer.CreateField(field_name)
     layer.CreateField(ogr.FieldDefn("ID", ogr.OFTInteger))
-    for i in xrange(0, len(TotalcrossSectionsXYArray)):
+    for i in range(0, len(TotalcrossSectionsXYArray)):
         xx = TotalcrossSectionsXYArray[i][1]
         yy = TotalcrossSectionsXYArray[i][0]
         xxProj = (float(gtf[0]) +
@@ -161,7 +161,7 @@ def write_cross_sections(TotalcrossSectionsXYArray, XSIDArray):
 
 # Writing drainage paths as shapefile
 def write_bank_lines(leftBankCellList, rightBankCellList):
-    print 'Writing bank lines'
+    print('Writing bank lines')
     driver = ogr.GetDriverByName(Parameters.driverName)
     if os.path.exists(Parameters.banklineFileName):
         driver.DeleteDataSource(Parameters.banklineFileName)
@@ -192,7 +192,7 @@ def write_bank_lines(leftBankCellList, rightBankCellList):
         else:
             BankCellList = rightBankCellList
             Bank = 'Right'
-        for i in xrange(0, len(leftBankCellList)):
+        for i in range(0, len(leftBankCellList)):
             xx = BankCellList[i][1]
             yy = BankCellList[i][0]
             xxProj = (float(gtf[0]) +

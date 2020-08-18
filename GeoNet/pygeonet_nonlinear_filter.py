@@ -5,8 +5,7 @@ from time import perf_counter
 from scipy.stats.mstats import mquantiles
 from pygeonet_rasterio import *
 from pygeonet_plot import *
-
-
+from numba import njit
 
 # Gaussian Filter
 def simple_gaussian_smoothing(inputDemArray, kernelWidth,
@@ -26,7 +25,9 @@ def simple_gaussian_smoothing(inputDemArray, kernelWidth,
     gaussianFilter = gaussianFilter/np.sum(gaussianFilter[:])  # Normalize
     print(inputDemArray[0, 0:halfKernelWidth])
     xL = np.nanmean(inputDemArray[:, 0:halfKernelWidth], axis=1)
+    print(f'xL: {xL}')
     xR = np.nanmean(inputDemArray[:, Nx-halfKernelWidth:Nx], axis=1)
+    print(f'xR: {xR}')
     part1T = np.vstack((xL, xL))
     part1 = part1T.T
     part2T = np.vstack((xR, xR))
@@ -43,8 +44,8 @@ def simple_gaussian_smoothing(inputDemArray, kernelWidth,
     # the NaN
     fillvalue = np.nanmean(inputDemArray[:])
     smoothedDemArray = conv2.convolve2d(eI, gaussianFilter, 'valid')
+    del inputDemArray, eI
     return smoothedDemArray
-
 
 def anisodiff(img, niter, kappa, gamma, step=(1., 1.), option=2):
     # initialize output array
@@ -58,18 +59,21 @@ def anisodiff(img, niter, kappa, gamma, step=(1., 1.), option=2):
     EW = deltaS.copy()
     gS = np.ones_like(imgout)
     gE = gS.copy()
+    step1 = step[0]
+    step2 = step[1]
     for ii in range(niter):
 
         # calculate the diffs
         deltaS[:-1, :] = np.diff(imgout, axis=0)
         deltaE[:, :-1] = np.diff(imgout, axis=1)
         if option == 2:
+            #gS = gs_diff(deltaS,kappa,step1)
+            #gE = ge_diff(deltaE,kappa,step2)
             gS = 1./(1.+(deltaS/kappa)**2.)/step[0]
             gE = 1./(1.+(deltaE/kappa)**2.)/step[1]
         elif option == 1:
             gS = np.exp(-(deltaS/kappa)**2.)/step[0]
             gE = np.exp(-(deltaE/kappa)**2.)/step[1]
-            
         # update matrices
         E = gE*deltaE
         S = gS*deltaS
@@ -99,12 +103,13 @@ def lambda_nonlinear_filter(nanDemArray):
     print(('DEM slope array shape:'), slopeMagnitudeDemArray.shape)
     
     # plot the slope DEM array
-    if defaults.doPlot == 1:
-        raster_plot(slopeMagnitudeDemArray, 'Slope of unfiltered DEM')
+    #if defaults.doPlot == 1:
+    #    raster_plot(slopeMagnitudeDemArray, 'Slope of unfiltered DEM')
     
     # Computation of the threshold lambda used in Perona-Malik nonlinear
     # filtering. The value of lambda (=edgeThresholdValue) is given by the 90th
     # quantile of the absolute value of the gradient.
+
     print ('Computing lambda = q-q-based nonlinear filtering threshold')
     slopeMagnitudeDemArray = slopeMagnitudeDemArray.flatten()
     slopeMagnitudeDemArray = slopeMagnitudeDemArray[~np.isnan(
@@ -120,7 +125,8 @@ def lambda_nonlinear_filter(nanDemArray):
 def main():
     nanDemArray = read_dem_from_geotiff(Parameters.demFileName,
                                         Parameters.demDataFilePath)
-    
+    print(np.max(nanDemArray))
+    print(np.min(nanDemArray))
     nanDemArray[nanDemArray < defaults.demNanFlag] = np.nan
     if defaults.diffusionMethod == 'PeronaMalik2':
         edgeThresholdValue = lambda_nonlinear_filter(nanDemArray)
@@ -139,11 +145,10 @@ def main():
 
     else:
         print((defaults.diffusionMethod+" filter is not available in the"))
-        "current version GeoNet"
-   
+        "current version GeoNet"   
     # plot the filtered DEM
-    if defaults.doPlot == 1:
-        raster_plot(filteredDemArray, 'Filtered DEM')
+    #if defaults.doPlot == 1:
+    #    raster_plot(filteredDemArray, 'Filtered DEM')
         
     # Writing the filtered DEM as a tif
     write_geotif_filteredDEM(filteredDemArray, Parameters.demDataFilePath,

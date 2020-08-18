@@ -1,16 +1,16 @@
 from __future__ import division
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
-from scipy import stats
-from time import perf_counter 
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from scipy import stats
+from time import perf_counter 
 from pygeonet_rasterio import *
 from pygeonet_plot import *
 
 
 def compute_dem_slope(filteredDemArray, pixelDemScale):
-    slopeXArray, slopeYArray = np.gradient(filteredDemArray, pixelDemScale)
+    slopeYArray, slopeXArray = np.gradient(filteredDemArray, pixelDemScale)
     slopeDemArray = np.sqrt(slopeXArray**2 + slopeYArray**2)
     slopeMagnitudeDemArrayQ = slopeDemArray
     slopeMagnitudeDemArrayQ = np.reshape(slopeMagnitudeDemArrayQ,
@@ -29,7 +29,11 @@ def compute_dem_slope(filteredDemArray, pixelDemScale):
 
 
 def compute_dem_curvature(demArray, pixelDemScale, curvatureCalcMethod):
-    gradXArray, gradYArray = np.gradient(demArray, pixelDemScale)
+    # OLD:
+    #gradXArray, gradYArray = np.gradient(demArray, pixelDemScale)
+    # NEW: 
+    gradYArray, gradXArray = np.gradient(demArray, pixelDemScale)
+    
     slopeArrayT = np.sqrt(gradXArray**2 + gradYArray**2)
     if curvatureCalcMethod == 'geometric':
         # Geometric curvature
@@ -41,8 +45,12 @@ def compute_dem_curvature(demArray, pixelDemScale, curvatureCalcMethod):
         print(' using laplacian curvature')
         gradXArrayT = gradXArray
         gradYArrayT = gradYArray
-    gradGradXArray, tmpy = np.gradient(gradXArrayT, pixelDemScale)
-    tmpx, gradGradYArray = np.gradient(gradYArrayT, pixelDemScale)
+    
+    
+    # NEW:
+    tmpy, gradGradXArray = np.gradient(gradXArrayT, pixelDemScale)
+    gradGradYArray, tmpx = np.gradient(gradYArrayT, pixelDemScale)
+
     curvatureDemArray = gradGradXArray + gradGradYArray
     curvatureDemArray[np.isnan(curvatureDemArray)] = 0
     del tmpy, tmpx
@@ -70,7 +78,6 @@ def compute_quantile_quantile_curve(x):
     res = stats.probplot(x, plot=plt)
     res1 = sm.ProbPlot(x, stats.t, fit=True)
     print(res1)
-    plt.show()
     return res
 
 
@@ -81,7 +88,6 @@ def main():
     print('computing slope')
     slopeDemArray = compute_dem_slope(filteredDemArray,
                                       Parameters.demPixelScale)
-    #print('DEM pixel Scale', Parameters.demPixelScale)
     slopeDemArray[np.isnan(filteredDemArray)] = np.nan
     # Writing the curvature array
     outfilepath = Parameters.geonetResultsDir
@@ -91,6 +97,7 @@ def main():
     # Computing curvature
     print('computing curvature')
 #     curvatureDemArrayIn = filteredDemArray
+    print(np.max(filteredDemArray))
     curvatureDemArray, curvatureDemMean, \
                        curvatureDemStdDevn = compute_dem_curvature(
                            filteredDemArray, Parameters.demPixelScale,
@@ -100,23 +107,12 @@ def main():
     outfilename = demName + '_curvature.tif'
     write_geotif_generic(curvatureDemArray, outfilepath, outfilename)
     # plotting the curvature image
-    if defaults.doPlot == 1:
-        raster_plot(curvatureDemArray, 'Curvature DEM')
+    #if defaults.doPlot == 1:
+    #    raster_plot(curvatureDemArray, 'Curvature DEM')
 
     finiteCurvatureDemList = curvatureDemArray[np.isfinite(
         curvatureDemArray[:])]
-    # *************************************************
-    # Compute curvature quantile-quantile curve
-    # This seems to take a long time ... is commented for now
-    print('computing curvature quantile-quantile curve')
-    osm,osr = compute_quantile_quantile_curve(finiteCurvatureDemList)
-    print(osm[0])
-    print(osr[0])
     thresholdCurvatureQQxx = 1
-
-    # have to add method to automatically compute the threshold
-    # *************************************************
-
 
 if __name__ == '__main__':
     t0 = perf_counter()

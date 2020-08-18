@@ -7,7 +7,7 @@ from osgeo import osr
 from osgeo import ogr
 import pygeonet_prepare as Parameters
 import pygeonet_defaults as defaults
-
+from rasterio.crs import CRS
 
 # Read dem information
 def read_dem_from_geotiff(demFileName, demFilePath):
@@ -48,8 +48,10 @@ def read_geotif_filteredDEM():
 def read_geotif_generic(intifpath, intifname):
     intif = os.path.join(intifpath, intifname)
     ds = gdal.Open(intif, gdal.GA_ReadOnly)
+    prj = ds.GetProjection()
+    crs = CRS.from_wkt(prj)
     ary = ds.GetRasterBand(1).ReadAsArray()
-    return ary
+    return ary,crs,ds
 
 
 # Write geotif to file on a disk
@@ -62,6 +64,33 @@ def write_geotif_generic(inputArray, outfilepath, outfilename):
     # create the output image
     driver = gdal.GetDriverByName('GTiff')
     outDs = driver.Create(output_fileName, ncols, nrows, 1, gdal.GDT_Float32)
+    if outDs is None:
+        print(('Could not create ' + outfilename))
+        sys.exit(1)
+    outBand = outDs.GetRasterBand(1)
+    # set the reference info
+    geotransform = Parameters.geotransform
+    cc = (geotransform[0], geotransform[1], geotransform[2],
+          geotransform[3], geotransform[4], geotransform[5])
+    outDs.SetGeoTransform(cc)
+    outDs.SetProjection(Parameters.inputwktInfo)
+    # write the band
+    tmparray = np.array(inputArray)
+    outBand.WriteArray(tmparray)
+    # flush data to disk, set the NoData value and calculate stats
+    outBand.FlushCache()
+    del tmparray, outDs, outBand, driver
+
+# Write geotif to file on a disk
+def write_geotif_skeleton(inputArray, outfilepath, outfilename):
+    print(('writing geotiff', outfilename))
+    output_fileName = os.path.join(outfilepath, outfilename)
+    # Get shape
+    nrows = inputArray.shape[0]
+    ncols = inputArray.shape[1]
+    # create the output image
+    driver = gdal.GetDriverByName('GTiff')
+    outDs = driver.Create(output_fileName, ncols, nrows, 1, gdal.GDT_Int16)
     if outDs is None:
         print(('Could not create ' + outfilename))
         sys.exit(1)

@@ -5,14 +5,22 @@ from osgeo import ogr
 import numpy as np
 import configparser
 import inspect
+from numba import njit
 from time import perf_counter 
+from GeoFlood_Filename_Finder import cfg_finder
 
 
 global d_x, d_y, g_x, g_y, nodata
-d_x = [-1,-1,0,1,1,1,0,-1]
-d_y = [0,-1,-1,-1,0,1,1,1]
-g_x = [1.0,1.0,0.0,1.0,1.0,1.0,0.0,1.0]
-g_y = [0.0,1.0,1.0,1.0,0.0,1.0,1.0,1.0]
+#d_x = [-1,-1,0,1,1,1,0,-1]
+#d_y = [0,-1,-1,-1,0,1,1,1]
+#g_x = [1.0,1.0,0.0,1.0,1.0,1.0,0.0,1.0]
+#g_y = [0.0,1.0,1.0,1.0,0.0,1.0,1.0,1.0]
+
+d_x = np.asarray([-1,-1,0,1,1,1,0,-1])
+d_y = np.asarray([0,-1,-1,-1,0,1,1,1])
+g_x = np.asarray([1.0,1.0,0.0,1.0,1.0,1.0,0.0,1.0])
+g_y = np.asarray([0.0,1.0,1.0,1.0,0.0,1.0,1.0,1.0])
+
 
 
 def vector2raster(vectorfn, rasterfn, newRasterfn):
@@ -48,7 +56,7 @@ def raster2array(rasterfn):
     array = band.ReadAsArray()
     return array
 
-
+@njit
 def negative_height_identification(demArray, pathArray):
     # Euclidean Allocation
     global d_x, d_y, g_x, g_y
@@ -160,19 +168,12 @@ def array2raster(newRasterfn,rasterfn,array,datatype):
 
 
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    DEM_name = config.get('Section', 'dem_name')
-    geofloodInputDir = os.path.join(geofloodHomeDir, "Inputs",
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    geofloodInputDir = os.path.join(geofloodHomeDir, input_fn,
                                     "GIS", projectName) 
     flowline_shp = os.path.join(geofloodInputDir, "Flowline.shp")
     demfn = os.path.join(geofloodInputDir, DEM_name+".tif")
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
                                       "GIS", projectName)
     Name_path = os.path.join(geofloodResultsDir, DEM_name)
     nhdfn = Name_path + '_nhdflowline.tif'
@@ -185,11 +186,9 @@ def main():
     allocationArray, relaHeightArray = negative_height_identification(demArray, pathArray)
     array2raster(allofn,demfn,allocationArray,gdal.GDT_Float32)
     array2raster(negahandfn,demfn,relaHeightArray,gdal.GDT_Byte)
-    
 
 if __name__ == '__main__':
     t0 = perf_counter()
     main()
     t1 = perf_counter()
-    print(("time taken to compute relative height:", t1-t0, " seconds"))
-
+    print(f"Time taken for Negative Height Calculation: {t1-t0} seconds")

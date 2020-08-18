@@ -1,15 +1,22 @@
 from __future__ import division
 import os
 import gdal, osr
-from osgeo import ogr
-from skimage.graph import route_through_array
+import psutil
+import math
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 import configparser
 import inspect
-from time import perf_counter 
+import gc
+import rasterio
 
+from osgeo import ogr
+from skimage.graph import route_through_array
+from time import perf_counter
+from rasterio.mask import mask
+from rasterio.windows import Window
+from GeoFlood_Filename_Finder import cfg_finder
 
 originX = 0.0
 originY = 0.0
@@ -22,7 +29,6 @@ def raster2array(rasterfn):
     band = raster.GetRasterBand(1)
     array = band.ReadAsArray()
     return array
-
 
 def get_raster_info(rasterfn):
     global originX
@@ -42,41 +48,44 @@ def coord2pixelOffset(x,y):
     yOffset = int((y - originY)/pixelHeight)
     return xOffset,yOffset
 
-
 def normalize(inputArray):
     normalizedArray = inputArray- np.min(inputArray[~np.isnan(inputArray)])
     normalizedArrayR = normalizedArray/ np.max(normalizedArray[~np.isnan(normalizedArray)])
     return normalizedArrayR
 
-
 def createPath(costSurfaceArray,startIndexX,startIndexY,stopIndexX,stopIndexY):
-
-    # create path
-    indices, weight = route_through_array(costSurfaceArray, (startIndexY,startIndexX), (stopIndexY,stopIndexX),geometric=False,fully_connected=True)
+    indices, weight = route_through_array(costSurfaceArray, (startIndexY,startIndexX), (stopIndexY,stopIndexX),geometric=True,fully_connected=True)
     indices = np.array(indices).T
     return indices
 
+def getFeatures(gdf):
+    # Function to parse features from GeoDataFrame in such a manner that rasterio wants them
+    import json
+    return [json.loads(gdf.to_json())['features'][0]['geometry']]
 
-def route_path(costSurfaceArray, df_flowline, pathArray, streamcell_csv, flowlinefn, skeletonfn):
+def route_path(costSurfaceArray, df_flowline, pathArray, streamcell_csv, flowlinefn, facfn,curvaturefn):
     i = 0
     geodesicPathsCellDic = {}
     for index, row in df_flowline.iterrows():
-        startXCoord = row['START_X']
-        startYCoord = row['START_Y']
-        endXCoord = row['END_X']
-        endYCoord = row['END_Y']
-        startIndexX, startIndexY = coord2pixelOffset(startXCoord,startYCoord)
-        stopIndexX, stopIndexY = coord2pixelOffset(endXCoord,endYCoord)
-        indices = createPath(costSurfaceArray,startIndexX,startIndexY,stopIndexX,stopIndexY)
-        geodesicPathsCellDic[str(i)] = indices
-        i += 1
-        pathArray[indices[0], indices[1]] = 1
+    	startXCoord = float(row['START_X'])
+    	startYCoord = float(row['START_Y'])
+    	endXCoord = float(row['END_X'])
+    	endYCoord = float(row['END_Y'])
+    	startIndexX, startIndexY = coord2pixelOffset(startXCoord,startYCoord)
+    	stopIndexX, stopIndexY = coord2pixelOffset(endXCoord,endYCoord)
+    	print(f'RAM usage before create path {i}: {psutil.virtual_memory()}')
+    	print(' ')
+    	indices = createPath(costSurfaceArray,startIndexX,startIndexY,stopIndexX,stopIndexY)
+    	geodesicPathsCellDic[str(i)] = indices
+    	i += 1
+    	pathArray[indices[0],indices[1]] = 1
+    	del indices
+    
     NewgeodesicPathsCellDic, numberOfEndPoints, geodesicPathsCellList, keyList, \
                              jx, jy = Channel_Reconstruct(geodesicPathsCellDic, i)
-    write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn)
+    write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, curvaturefn)
     df_channel = pd.DataFrame(list(NewgeodesicPathsCellDic.items()),columns=['ID', 'PathCellList'])
     df_channel.to_csv(streamcell_csv, index=False)
-
 
 def Channel_Reconstruct(geodesicPathsCellDic, numberOfEndPoints):
     df_channel = pd.DataFrame({'Y':[],'X':[]})
@@ -85,48 +94,58 @@ def Channel_Reconstruct(geodesicPathsCellDic, numberOfEndPoints):
         df_tempory = pd.DataFrame(streamPathPixelList.T, columns=['Y','X'])
         df_channel = pd.concat([df_channel,df_tempory])
     size_sr = df_channel.groupby(['Y','X']).size().to_dict()
+    
     NewgeodesicPathsCellDic = {}
     StartpointList = []
+    StartpointList2 = []
     jx = []
     jy = []
     k = 0
     for i in range(0,numberOfEndPoints):
         for j in range(0,geodesicPathsCellDic[str(i)][0].size):
+            # If Statement: Checking if the cell being looped through has an index of zero.
+            #               If yes, append it to the starting point list.
+
             if j==0:
                 if i!= 0:
                     k += 1
                 StartpointList.append([geodesicPathsCellDic[str(i)][0,j],geodesicPathsCellDic[str(i)][1,j]])
-                NewgeodesicPathsCellDic[str(k)] = [[geodesicPathsCellDic[str(i)][0,j]],[geodesicPathsCellDic[str(i)][1,j]]]
+                NewgeodesicPathsCellDic[str(k)] = [[geodesicPathsCellDic[str(i)][0,j]],[geodesicPathsCellDic[str(i)][1,j]]]            
+                StartpointList2.append([geodesicPathsCellDic[str(i)][0,j],geodesicPathsCellDic[str(i)][1,j]])  
+           # Checking if the path cell at the current iteration is the same as the
+           # previous iteration. If it is, append to the 'NewgeodesicPathsCellDic'.
             else:
                 if size_sr[geodesicPathsCellDic[str(i)][0,j],geodesicPathsCellDic[str(i)][1,j]] == size_sr[geodesicPathsCellDic[str(i)][0,j-1],geodesicPathsCellDic[str(i)][1,j-1]]:
                     NewgeodesicPathsCellDic[str(k)][0].append(geodesicPathsCellDic[str(i)][0,j])
                     NewgeodesicPathsCellDic[str(k)][1].append(geodesicPathsCellDic[str(i)][1,j])
+                    
+                # When this condition is satisfied, additional start points are added to the 
+                # 'StartpointList' variable. This leads to unwanted segmentation of the
+                # extracted channel network.
                 else:
                     if [geodesicPathsCellDic[str(i)][0,j],geodesicPathsCellDic[str(i)][1,j]] not in StartpointList:
-                        k += 1
-                        jx.append(geodesicPathsCellDic[str(i)][1,j])
-                        jy.append(geodesicPathsCellDic[str(i)][0,j])
-                        NewgeodesicPathsCellDic[str(k-1)][0].append(geodesicPathsCellDic[str(i)][0,j])
-                        NewgeodesicPathsCellDic[str(k-1)][1].append(geodesicPathsCellDic[str(i)][1,j])
-                        NewgeodesicPathsCellDic[str(k)] = [[geodesicPathsCellDic[str(i)][0,j]],[geodesicPathsCellDic[str(i)][1,j]]]
-                        StartpointList.append([geodesicPathsCellDic[str(i)][0,j], geodesicPathsCellDic[str(i)][1,j]])
+                        continue
                     else:
                         NewgeodesicPathsCellDic[str(k)][0].append(geodesicPathsCellDic[str(i)][0,j])
                         NewgeodesicPathsCellDic[str(k)][1].append(geodesicPathsCellDic[str(i)][1,j])
+                        k += 1
                         break
     NewgeodesicPathsCellList = []
     keyList = []
+    print(StartpointList)
     for key in list(NewgeodesicPathsCellDic.keys()):
         NewgeodesicPathsCellList.append(np.asarray(NewgeodesicPathsCellDic[key]))
         keyList.append(key)
-    numberOfEndPoints = len(StartpointList)
+    numberOfEndPoints = len(StartpointList2)
+    print(f'Number of endpoints: {numberOfEndPoints}')
+    
     return NewgeodesicPathsCellDic, numberOfEndPoints, NewgeodesicPathsCellList,keyList, jx, jy
 
 
-def write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn):
+def write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, curvaturefn):
     driver = ogr.GetDriverByName("ESRI Shapefile")
     data_source = driver.CreateDataSource(flowlinefn)
-    ds = gdal.Open(skeletonfn, gdal.GA_ReadOnly)
+    ds = gdal.Open(curvaturefn, gdal.GA_ReadOnly)
     geotransform = ds.GetGeoTransform()
     inputwktInfo = ds.GetProjection()
     srs = osr.SpatialReference()
@@ -157,6 +176,7 @@ def write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn)
         line = ogr.Geometry(ogr.wkbLineString)            
         for j in range(0,len(xxProj)):
             line.AddPoint(xxProj[j],yyProj[j])
+        #print(f'xxProj: {len(xxProj)}')
         # Create the point from the Well Known Txt
         #lineobject = line.ExportToWkt()
         # Set the feature geometry using the point
@@ -167,7 +187,6 @@ def write_drainage_paths(geodesicPathsCellList, keyList, flowlinefn, skeletonfn)
         feature.Destroy()
     # Destroy the data source to free resources
     data_source.Destroy()
-
 
 def array2raster(newRasterfn,rasterfn,array,datatype):
     raster = gdal.Open(rasterfn)
@@ -187,50 +206,131 @@ def array2raster(newRasterfn,rasterfn,array,datatype):
     outRasterSRS.ImportFromWkt(raster.GetProjectionRef())
     outRaster.SetProjection(outRasterSRS.ExportToWkt())
     outband.FlushCache()
-
-
+    del outband
+    
+    
 def main():
-    config = configparser.RawConfigParser()
-    config.read(os.path.join(os.path.dirname(
-        os.path.dirname(
-            inspect.stack()[0][1])),
-                             'GeoFlood.cfg'))
-    geofloodHomeDir = config.get('Section', 'geofloodhomedir')
-    projectName = config.get('Section', 'projectname')
-    geofloodResultsDir = os.path.join(geofloodHomeDir, "Outputs",
-                                      "GIS", projectName)
-    DEM_name = config.get('Section', 'dem_name')
-    Name_path = os.path.join(geofloodResultsDir, DEM_name)
+    geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
+    geofloodResultsDir = os.path.join(geofloodHomeDir, output_fn,
+                                     "GIS", projectName)
+    # Read in parameters that could potentially be used in cost function.
+    Name_path = os.path.join(geofloodResultsDir, DEM_name)    	
     flowline_csv = Name_path + '_endPoints.csv'
     curvaturefn = Name_path + '_curvature.tif'
     facfn = Name_path + '_fac.tif'
-    skeletonfn = Name_path + '_skeleton.tif'
+    hr_fn = Name_path + '_NHD_HR.tif'
     handfn = Name_path + '_NegaHand.tif'
     flowlinefn = Name_path + '_channelNetwork.shp'
     costsurfacefn = Name_path + '_cost.tif'
     pathfn = Name_path + '_path.tif'
     streamcell_csv = Name_path + '_streamcell.csv'
-    facArray = raster2array(facfn)
-    facArray = np.log10(facArray)
-    facArray = normalize(facArray)
-    flowMean = np.mean(facArray[~np.isnan(facArray[:])])
-    curvatureArray = raster2array(curvaturefn)
-    curvatureArray = normalize(curvatureArray)
-    skeletonArray = raster2array(skeletonfn)
-    costsurfaceArray = 1.0/(facArray+flowMean*curvatureArray)
-    #costsurfaceArray = 1.0/(facArray+flowMean*curvatureArray+flowMean*skeletonArray)
-    #if os.path.exists(handfn):
-    #    handArray = raster2array(handfn)
-    #    costsurfaceArray = 1.0/(facArray+flowMean*curvatureArray+handArray)
+    src_fac = rasterio.open(facfn)
+    src_curv = rasterio.open(curvaturefn)
+    src_neghand = rasterio.open(handfn)
+    if (os.path.exists(hr_fn)) and (hr_status==1): # HR raster from pygeonet_hr_raster.py script
+    	src_hr = rasterio.open(hr_fn)
+
+    dem_shape = src_curv.shape
+    print(f'Chunk status: {chunk_status}')
+    dem_bytes = src_curv.read(1).nbytes
+    dem_limit = 1_500_000_000
+    print(f'DEM Size: {round(np.float(dem_bytes)/10**9,3)} GB')
+    if (dem_bytes>=dem_limit) and (chunk_status==1): # Default setting
+    	print("Chunking DEM")
+    	tot_chunks = math.ceil(np.float(dem_bytes)/(10**9))
+    	print(f'Number of Chunks: {tot_chunks}')
+    elif (dem_bytes<dem_limit) and (chunk_status==1):
+    	print("DEM not big enough to chunk")
+    	tot_chunks = 1
+    else:
+    	print("Not attempting to chunk DEM")
+    	tot_chunks = 1
+    row_iter = 1
+    sample_rows = math.ceil(src_fac.shape[0]/tot_chunks) # Chunk by the row
+    sample_cols = src_fac.shape[1]            
+    costsurfaceArray = np.zeros(shape=src_fac.shape)
+    cost_list = []
+    # Chunking of rasters. If tot_chunks = 1, the entire raster will be processed at one time.
+    for row_iter in range (1,tot_chunks+1):
+    	facArray = src_fac.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
+    	curvatureArray = src_curv.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
+    	if (os.path.exists(hr_fn)) and (hr_status==1):
+            hr_Array = src_hr.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
+            hr_Array = hr_Array.astype(np.uint8)
+            if (row_iter==1):
+                print('Found HR_Flowline Raster')
+    	if (os.path.exists(handfn)):
+            handArray = src_neghand.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
+    	# FAC Calculations
+    	facArray = np.log(facArray)
+    	facArray = normalize(facArray)
+    	facArray = facArray.astype(np.float32)
+    	flowMean = np.mean(facArray[~np.isnan(facArray[:])])
+
+    	# Curvature
+    	curvatureArray = np.where((curvatureArray<-10) | (curvatureArray>10),np.nan,curvatureArray) 
+    	curvatureArray = normalize(curvatureArray)
+    	# The np where operation above is one last check/method to remove likely nan pixels
+     	# that have not been flagged as nan. Typical curvature values are between -2 to 2 (Geometric) or -5 to 5 (laplacian)    	
+    	
+	# If the hr_extraction is found in the outputs folder, include in the cost function.
+    	if (os.path.exists(hr_fn)) and (hr_status==1):
+    		if (row_iter==1):
+    		    print('Calculating cost with NHD HR raster as a parameter.')
+    		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray+hr_Array)
+    	elif (not os.path.exists(hr_fn)) and (hr_status==1):
+    		if (row_iter==1):
+    		    print("Couldn't find HR raster. Calculating Cost without it.")
+    		cost = 1/(curvatureArray*flowMean + facArray+0.75*handArray)
+            
+    	elif (os.path.exists(hr_fn)) and (hr_status==0):
+    		if (row_iter==1):
+    			print("Found HR raster, but 'hr_flowline' variable in project cfg is set to 0. \
+Calculate cost without HR. (Set to 1 to use HR)")
+    		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray)
+    	elif (not os.path.exists(hr_fn)) and (hr_status==0):
+    		if (row_iter==1):
+    			print('Not using NHD HR Raster in cost function')
+    		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray)
+    	elif (hr_status==-1):
+            if (row_iter==1):
+                print('NOT using any NHD products in Cost Function')
+            cost = 1/(curvatureArray*flowMean+facArray)
+    	cost_list.append(cost)
+    	row_iter += 1
+    	del facArray, curvatureArray, cost, handArray
+    	if (os.path.exists(hr_fn)) and (hr_status==1):
+    		del hr_Array
+    	
+
+    costsurfaceArray = cost_list
+    del cost_list
+    gc.collect()
+    costsurfaceArray = np.concatenate(costsurfaceArray,axis=0).astype(np.float32)
+    print(f'Cost shape: {costsurfaceArray.shape}')
+    assert costsurfaceArray.shape[0] == dem_shape[0]
+    assert costsurfaceArray.shape[1] == dem_shape[1]
+    costQuantile = np.quantile(costsurfaceArray[~np.isnan(costsurfaceArray[:])],.025)
+    
     array2raster(costsurfacefn,facfn,costsurfaceArray,gdal.GDT_Float32)
-    costsurfaceArray[np.isnan(costsurfaceArray)] = 10000
+    
+    costsurfaceArray[np.isnan(costsurfaceArray)] = 100000
+    
+    # Threshold cost
+    # 	
+    costsurfaceArray = np.where(costsurfaceArray<costQuantile,costsurfaceArray,100000)
+    #
+    #
+    
+    # Check memory usage
     get_raster_info(costsurfacefn)
-    df_flowline = pd.read_csv(flowline_csv)
-    pathArray = np.zeros_like(costsurfaceArray)
-    route_path(costsurfaceArray, df_flowline, pathArray, streamcell_csv, flowlinefn, skeletonfn)
+    df_flowline = pd.read_csv(flowline_csv)    	
+    pathArray = np.zeros_like(costsurfaceArray,dtype=np.uint8)
+    costsurfaceArray = costsurfaceArray.astype(np.float32)
+    route_path(costsurfaceArray, df_flowline, pathArray, streamcell_csv, flowlinefn, facfn,curvaturefn)
+
     array2raster(pathfn,costsurfacefn,pathArray,gdal.GDT_Byte)
     
-
 if __name__ == '__main__':
     t0 = perf_counter()
     main()
