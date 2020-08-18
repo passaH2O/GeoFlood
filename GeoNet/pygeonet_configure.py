@@ -24,11 +24,9 @@ def cmd_inputs():
 			chunked. In cfg file, 1: Chunk DEMs, 0: Dont chunk DEMs", action='store_true')
 	parser.add_argument('--input_dir',help="Name of Inputs folder. Default is 'GeoInputs'.",type=str)
 	parser.add_argument('--output_dir',help="Name of Outputs folder. Default is 'GeoOutputs'.",type=str)
-	parser.add_argument('--no_hr',help="If passed, network extraction will not attempt \
-			to use NHD_HR_Flowline binary raster in cost function. Default is \
-			to include in cost function if found in project outputs. \
-			In cfg file, 1: Use if found, 0: Do not use",
-			action='store_true')
+	parser.add_argument('--channel_type',help="1: Cost function with NHD HR [BEST]; 0: Cost function with NHD MR (no NHD HR) [2nd BEST]; -1: Cost function with just DEM features [3rd BEST]",
+			type=int)
+	
 	args = parser.parse_args()
 	if args.geofloodhomedir:
 		home_dir = args.geofloodhomedir
@@ -78,14 +76,19 @@ def cmd_inputs():
 		output_directory = "GeoOutputs"
 		print(f'Default Outputs Folder Name: {output_directory}')
 
-	if not args.no_hr:
+	if (args.channel_type==1):
 		hr_flowline=1
 		print("Will attempt to use NHD HR Flowline binary raster in cost function if found in GIS Outputs.")
-	else:
+	elif (args.channel_type!=1) and (args.channel_type!=0) and (args.channel_type!=-1):
+		hr_flowline=1
+		print("Will attempt to use NHD HR Flowline binary raster in cost function if found in GIS Outputs.")	
+	elif args.channel_type==0:
 		hr_flowline=0
 		print("Will not use NHD HR Flowline raster as a parameter in the network \
-			extraction cost function.")
-		
+			extraction cost function. Will use NHD MR.")
+	elif args.channel_type==-1:
+		hr_flowline=-1
+		print("Only using DEM features in cost function.")		
 
 	config = configparser.ConfigParser()
 	config['Section']={'geofloodhomedir':home_dir,

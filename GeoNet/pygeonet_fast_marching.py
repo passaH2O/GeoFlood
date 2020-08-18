@@ -3,15 +3,20 @@ import skfmm
 from time import perf_counter
 from pygeonet_rasterio import *
 from pygeonet_plot import *
+import time
+from numba import njit
+from numba import prange
+import psutil
+import dask
+from dask.distributed import Client
 
-
-def Fast_Marching_Start_Point_Identification(outlet_array, basinIndexArray):
+def Fast_March_Setup(outlet_array, basinIndexArray):
 
     # Computing the percentage drainage areas
     print("Computing percentage drainage area of each indexed basin")
     fastMarchingStartPointList = np.array(outlet_array)
-    fastMarchingStartPointListFMMx = []
-    fastMarchingStartPointListFMMy = []
+    fmmX = []
+    fmmY = []
     basinsUsedIndexList = np.zeros((len(fastMarchingStartPointList[0]),1))
     if not hasattr(Parameters, 'xDemSize'):
         Parameters.xDemSize = np.size(basinIndexArray,1)
@@ -22,30 +27,35 @@ def Fast_Marching_Start_Point_Identification(outlet_array, basinIndexArray):
     nDempixels = float(nx*ny)
     basin_elements=Parameters.numBasinsElements
     threshold=defaults.thresholdPercentAreaForDelineation
-    n_test=basinIndexArray[fastMarchingStartPointList[0,:],
-    				fastMarchingStartPointList[1,:]]
-    
-    for label in range(0,len(fastMarchingStartPointList[0])):
-        outletbasinIndex = basinIndexArray[fastMarchingStartPointList[0,label],
-                                           fastMarchingStartPointList[1,label]]
+    #n_test=basinIndexArray[fastMarchingStartPointList[0,:],
+    #				fastMarchingStartPointList[1,:]]
+    iter_total = np.arange(0,len(fastMarchingStartPointList[0])).size
+    print(iter_total)
+    return fastMarchingStartPointList, nDempixels,basin_elements, threshold, iter_total
+
+def for_loop(iter_total):
+    for i in range(iter_total):
+        print(i)
+
+
+@njit(parallel=True)
+def Fast_Marching_Start_Point_Identification(outlet_array, basinIndexArray,fastMarchingStartPointList, nDempixels,basin_elements, threshold, iter_total):
+    fmmX = []
+    fmmY = []
+    for label in prange(iter_total):
+        #print(np.sum(basinIndexArray.ravel()==(label+1)))
+        numelments = np.sum(basinIndexArray.ravel()==(label+1))
         
-        numelments = basinIndexArray[basinIndexArray==(outletbasinIndex)]
-        percentBasinArea = float(len(numelments)) * 100/nDempixels
-        print('Basin: ',outletbasinIndex,\
-              '@ : ',fastMarchingStartPointList[:,label],' #Elements ',len(numelments),\
-              ' area ',percentBasinArea,' %')
+        percentBasinArea = numelments * 100.00001/nDempixels
+        if (percentBasinArea > threshold) and (numelments > basin_elements):            
+            fmmX.append(fastMarchingStartPointList[1,label])
+            fmmY.append(fastMarchingStartPointList[0,label])
         
-        if (percentBasinArea > threshold) and (len(numelments) > basin_elements):
-            # Get the watersheds used
-            basinsUsedIndexList[label]= label
-            # Preparing the outlets used for fast marching in ROI
-            fastMarchingStartPointListFMMx.append(fastMarchingStartPointList[1,label])
-            fastMarchingStartPointListFMMy.append(fastMarchingStartPointList[0,label])
-        # finishing Making outlets for FMM
-    #Closing Basin area computation
-    fastMarchingStartPointListFMM = np.array([fastMarchingStartPointListFMMy,\
-                                                  fastMarchingStartPointListFMMx])
-    del fastMarchingStartPointListFMMy, fastMarchingStartPointListFMMx, fastMarchingStartPointList
+    return fmmX, fmmY
+
+def fmm_list_creation(fmmY,fmmX):
+    fastMarchingStartPointListFMM = np.array([fmmY,fmmX])
+    del fmmY, fmmX
     return fastMarchingStartPointListFMM
 
 
@@ -61,8 +71,8 @@ def Curvature_Preparation(curvatureDemArray):
     if defaults.doNormalizeCurvature ==1:
         print('normalizing curvature')
         curvatureDemArray = normalize(curvatureDemArray)
-        if defaults.doPlot == 1:
-            raster_plot(curvatureDemArray, 'Curvature DEM')
+        #if defaults.doPlot == 1:
+        #    raster_plot(curvatureDemArray, 'Curvature DEM')
         print('Curvature min: ' ,str(np.min(curvatureDemArray[~np.isnan(curvatureDemArray)])), \
               ' exp(min): ',str(np.exp(3*np.min(curvatureDemArray[~np.isnan(curvatureDemArray)]))))
         print('Curvature max: ' ,str(np.max(curvatureDemArray[~np.isnan(curvatureDemArray)])),\
@@ -98,7 +108,6 @@ def Local_Cost_Computation(flowArray, flowMean,
     write_geotif_generic(reciprocalLocalCostArray,outfilepath,outfilename)
     return reciprocalLocalCostArray
 
-
 def Fast_Marching(fastMarchingStartPointListFMM, basinIndexArray, flowArray, reciprocalLocalCostArray):
     # Fast marching
     print('Performing fast marching')
@@ -122,14 +131,15 @@ def Fast_Marching(fastMarchingStartPointListFMM, basinIndexArray, flowArray, rec
 ##        outletsyy = fastMarchingStartPointList[0,i]
         # call the fast marching here
         #phi = np.nan * np.ones((reciprocalLocalCostArray.shape)) # old
-        phi = np.empty(reciprocalLocalCostArray.shape)
+        phi = np.zeros(reciprocalLocalCostArray.shape)
         #speed = np.ones((reciprocalLocalCostArray.shape))* np.nan # old
-        speed = np.empty(reciprocalLocalCostArray.shape)
+        speed = np.zeros(reciprocalLocalCostArray.shape)
         phi[maskedBasinFAC!=0] = 1
         speed[maskedBasinFAC!=0] = reciprocalLocalCostArray[maskedBasinFAC!=0]    
         phi[fastMarchingStartPointListFMM[0,i],
             fastMarchingStartPointListFMM[1,i]] = -1
-        
+        del maskedBasinFAC
+        print(f'RAM usage before FMM {i}: {psutil.virtual_memory()}')
         try:
             travelTimearray = skfmm.travel_time(phi, speed, dx=.01)
         except IOError as e:            
@@ -138,22 +148,23 @@ def Fast_Marching(fastMarchingStartPointListFMM, basinIndexArray, flowArray, rec
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
             # setting travel time to empty array
             travelTimearray = np.nan * np.zeros((reciprocalLocalCostArray.shape))
-            if defaults.doPlot == 1:
-                raster_point_plot(speed, fastMarchingStartPointListFMM[:,i],
-                                  'speed basin Index'+str(basinIndexList))
+            #if defaults.doPlot == 1:
+            #    raster_point_plot(speed, fastMarchingStartPointListFMM[:,i],
+            #                      'speed basin Index'+str(basinIndexList))
                 #plt.contour(speed,cmap=cm.coolwarm)
-                raster_point_plot(phi, fastMarchingStartPointListFMM[:,i],
-                                  'phi basin Index'+str(basinIndexList))
+            #    raster_point_plot(phi, fastMarchingStartPointListFMM[:,i],
+            #                      'phi basin Index'+str(basinIndexList))
         except ValueError:
             print('Error in calculating skfmm travel time')
             print('Error in catchment: ',basinIndexList)
             print("Oops!  That was no valid number.  Try again...")
         geodesicDistanceArray[maskedBasin ==1]= travelTimearray[maskedBasin ==1]
+    geodesicDistanceArray[maskedBasin ==1]= travelTimearray[maskedBasin ==1]
     geodesicDistanceArray[geodesicDistanceArray==np.Inf]=np.nan
     # Plot the geodesic array
-    if defaults.doPlot == 1:
-        geodesic_contour_plot(geodesicDistanceArray,
-                              'Geodesic distance array (travel time)')
+    #if defaults.doPlot == 1:
+    #    geodesic_contour_plot(geodesicDistanceArray,
+    #                          'Geodesic distance array (travel time)')
     # Writing the geodesic distance array
     outfilepath = Parameters.geonetResultsDir
     demName = Parameters.demFileName.split('.')[0]
@@ -180,9 +191,17 @@ def main():
     skeleton_filename = demName+'_skeleton.tif'
     skeletonFromFlowAndCurvatureArray = read_geotif_generic(outfilepath, skeleton_filename)[0]
 
-    # Making outlets for FMM
-    fastMarchingStartPointListFMM = Fast_Marching_Start_Point_Identification(outlet_array, basinIndexArray)
+    # Initialize Parameters
+    fastMarchingStartPointList,nDempixels,basin_elements, threshold, iter_total = Fast_March_Setup(outlet_array,basinIndexArray)
 
+    # Making outlets for FMM
+    t1 = time.perf_counter()
+    fmmX,fmmY = Fast_Marching_Start_Point_Identification(outlet_array, basinIndexArray,fastMarchingStartPointList,nDempixels,basin_elements, threshold, iter_total)
+    t2 = time.perf_counter()
+    print(f'Calc Time: {t2-t1}')
+    # Create Final FMM List
+    fastMarchingStartPointListFMM = fmm_list_creation(fmmY,fmmX)
+    print(fastMarchingStartPointListFMM)
     # Computing the local cost function
     print('Preparing to calculate cost function')
     curvatureDemArray = Curvature_Preparation(curvatureDemArray)

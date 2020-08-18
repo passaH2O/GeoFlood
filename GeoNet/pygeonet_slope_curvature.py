@@ -98,12 +98,10 @@ def main():
     print('computing curvature')
 #     curvatureDemArrayIn = filteredDemArray
     print(np.max(filteredDemArray))
-    print(f'Non-NAN: {np.max(filteredDemArray[~np.isnan(filteredDemArray)])}')
     curvatureDemArray, curvatureDemMean, \
                        curvatureDemStdDevn = compute_dem_curvature(
                            filteredDemArray, Parameters.demPixelScale,
                            defaults.curvatureCalcMethod)
-    print(f'MAX: {np.max(curvatureDemArray[~np.isnan(curvatureDemArray)])}')
     curvatureDemArray[np.isnan(filteredDemArray)] = np.nan
     # Writing the curvature array
     outfilename = demName + '_curvature.tif'
