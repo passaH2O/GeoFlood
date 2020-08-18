@@ -1,13 +1,16 @@
 from __future__ import division
 import os
 import numpy as np
-import configparser
-import inspect
 from scipy import stats
 from osgeo import gdal,ogr
-from time import perf_counter 
-from GeoFlood_Filename_Finder import cfg_finder
+import configparser
+import inspect
+import sys
+import pandas as pd
 
+from GeoFlood_Filename_Finder import cfg_finder
+from time import perf_counter 
+from scipy.stats import gmean,theilslopes
 
 def river_attribute_estimation(segment_shp, segcatfn,
                                segcat_shp, burndemfn,
@@ -39,93 +42,129 @@ def river_attribute_estimation(segment_shp, segcatfn,
     ds.Destroy()
     ds = driver.Open(segcat_shp, 1)
     cat_layer = ds.GetLayer()
+    schema=[]
+    ldefn=cat_layer.GetLayerDefn()
+    for n in range(ldefn.GetFieldCount()):
+        fdefn = ldefn.GetFieldDefn(n)
+        schema.append(fdefn.name)
     cat_layer.CreateField(ogr.FieldDefn('AreaSqKm', ogr.OFTReal))
+    new_counter = 0
     for feat in cat_layer:
         geom = feat.GetGeometryRef()
         feat.SetField('AreaSqKm',float(geom.Area())/1000**2)
         cat_layer.SetFeature(feat)
         feat.Destroy()
+        new_counter+=1
     
 
     # Initialize Counter for the for loop iterations
     ac_iter = 0
 
-    # Initialize lists to hold each iterations z and m values. Used for correcting negative slopes.
-    z_array_dummy = []
-    m_array_dummy = []
-    slope_array_dummy = []
-    neg_slope_count = []
-
+    # Initialize lists to hold each iterations z and m values. Each loop will append to the list.
+    z_array_du = []
+    m_array_du = []
+    slope_array_du = []
+    alec_int = 0
+    mx_first=[]
+    mx_last=[]
+    temp_slope_list = []
+    feature_id_list=[]
+    print(f'Total Segments: {len(layer)}')
     for feature in layer:
         geom = feature.GetGeometryRef()
         feat_id = feature.GetField('HYDROID')
         length = feature.GetField('Length')/1000
         point_geom_list = geom.GetPoints()
-
         mx = np.array([])
         my = np.array([])
         for i in range(len(point_geom_list)):
             mx = np.append(mx, point_geom_list[i][0])
             my = np.append(my, point_geom_list[i][1])
+        mx_first.append(mx[0]) # Used to check if previous stream is actually upstream from current one
+        mx_last.append(mx[-1])
         px = ((mx - gt[0]) / gt[1]).astype(int)
         py = ((my - gt[3]) / gt[5]).astype(int)
-        x_diff = np.diff(px)
-        y_diff = np.diff(py)
+        x_diff = np.diff(px)*gt[1]
+        y_diff = np.diff(py)*gt[1]
         m_array = np.sqrt(x_diff**2 + y_diff**2)
         m_array = np.insert(m_array, 0, 0)
         m_array = np.cumsum(m_array)
-
         z_array = rasterBand.ReadAsArray()[py, px].flatten()
-
         # Gets rid of geometries that are empty
         if np.sum(m_array) == 0:
             print('Empty Geometry Encountered')
             continue
- 
-        # Append the current iteration to the dummy/container array.
-        m_array_dummy.append(m_array)
-        m_array_dummy_np = np.asarray(m_array_dummy) 
 
+        L_10 = int(len(m_array)*.1)
+        L_85 = int(len(m_array)*.85)
+        slope = (z_array[L_10]-z_array[L_85])/((m_array[L_85]-m_array[L_10]))
+        temp_slope_list.append(slope)
+
+        # Append the current iteration to the du/container array.
+        m_array_du.append(m_array)
+        # Convert to a numpy array of arrays instead of a list of arrays. This allows it to be indexed numerically.
+        m_array_du_np = np.asarray(m_array_du) 
+
+        # Same instructions used for the 'm_array_du' variable are done in the follwing two lines for z.
+        z_array_du.append(z_array)
+        z_array_du_np = np.asarray(z_array_du)
         
-        z_array_dummy.append(z_array)
-        z_array_dummy_np = np.asarray(z_array_dummy)
-
-        slope = -stats.linregress(m_array, z_array)[0]
-
-        if slope < 0:
-            neg_slope_count.append(1)
-        
-        # As done with the m and z values, append each new slope iteration to the 'slope_array_dummy' array 
+        #########################################################################################################
+        # As done with the m and z values, append each new slope iteration to the 'slope_array_du' array 
         # and convert it to a numpy array. This will be used for indexing slope values.
 
-        slope_array_dummy.append(slope)
-        slope_array_dummy_np = np.asarray(slope_array_dummy)
+        slope_array_du.append(slope)
+        slope_array_du_np = np.asarray(slope_array_du)
         
-        
-        ###### Correcting Negative and Hydroflattened Slopes: Cycles through upstream reaches until the regression slope is positive.
+        ###### Correcting Negative and Hydroflattened Slopes: Cycles through previous reaches until the regression slope is positive.
         ###### A value of 0.000001 was chosen as the cut off as not all hydroflattened reaches have a slope of exactly zero, i.e. 9x10^-9. 
         ###### As a result, any value below the threshold chosen will recompute the regression line with its upstream reaches until the 
         ###### slope becomes positive or there are no more reaches to cycle through. If the latter occurs, a slope of 0.00001 is assigned.
 
-        ###### From my experience, it usually takes no more than one or two upstream reaches to get a positive
-        ###### slop.
+        if (slope<=0.0000001) and (ac_iter==0):
+           slope=.00001
 
         subtraction_iter = 1
-        while slope <= 0.000001 and ac_iter>0:
-                    
-            previous_reach_index = ac_iter - subtraction_iter
-            z_array_test = np.concatenate(z_array_dummy_np[previous_reach_index:])
-            m_array_test = np.concatenate(m_array_dummy_np[previous_reach_index:])
+        a1_count=0
+        prev_check=0
+        gmean_check=0
+        if (slope<=0.0) and (ac_iter>=1):
+            previous_reach_index=ac_iter-subtraction_iter # Just for indexing purposes
+            while (slope <= 0.000001) and (mx_first[ac_iter]==mx_last[previous_reach_index]) and (subtraction_iter<=3):
             
-            # Linear regression with the appended m and z arrays.
-            slope = -stats.linregress(m_array_test, z_array_test)[0]
-                       
-            # If the number of reaches it is trying to slice is greater than what is contained in the array, assign the slope
-            # a small, positive number.
-            if subtraction_iter > ac_iter:
-                slope = .000001
-            subtraction_iter += 1
+                previous_reach_index = ac_iter - subtraction_iter
+                prior_length=[]
+                prior_array_length=[]
+                for i in range(subtraction_iter):
+                    prior_length.append(m_array_du_np[previous_reach_index+i][-1])
+                    prior_array_length.append(np.size(m_array_du_np[previous_reach_index+i]))
 
+                z_array_test = np.concatenate(z_array_du_np[previous_reach_index:])
+                m_array_test = np.concatenate(m_array_du_np[previous_reach_index:])
+                for i in range(len(prior_length)):
+                    if len(prior_length)<2:
+                        m_array_test[prior_array_length[i]:]=m_array_test[prior_array_length[i]:]+prior_length
+                    else:
+                        if (i+1)<len(prior_length):
+                            m_array_test[prior_array_length[i+1]:(prior_array_length[i]+prior_array_length[i+1])]=m_array_test[prior_array_length[i+1]:(prior_array_length[i]+prior_array_length[i+1])]+prior_length[i+1]
+
+                        else:
+                            m_array_test[np.sum(prior_array_length):]=m_array_test[np.sum(prior_array_length):]+prior_length[0]
+                L_negative_10 = int(np.size(m_array_test)*.1)
+                L_negative_85 = int(np.size(m_array_test)*.85)
+                slope = (z_array_test[L_negative_10]-z_array_test[L_negative_85])/(m_array_test[L_negative_85]-m_array_test[L_negative_10])
+                if (slope>0):
+                    prev_check=1
+                subtraction_iter+=1
+            if (slope<=.000001) and (subtraction_iter>3):
+                slope = gmean(slope_array_du_np[slope_array_du_np>0])
+                gmean_check=1
+        if slope>0.0:
+            slope_array_du.append(slope)
+        else:
+            slope = gmean(slope_array_du_np[slope_array_du_np>0])
+            slope_array_du.append(slope)
+        alec_int += 1
         cat_layer.SetAttributeFilter("HYDROID = "+str(feat_id))
         area = 0
         for feat in cat_layer:
@@ -134,11 +173,12 @@ def river_attribute_estimation(segment_shp, segcatfn,
         feature.Destroy()
         rafile.write(str(feat_id)+" "+str(slope)+" "+str(length)+" "+str(area)+"\n")
         ac_iter += 1
-    print(f'Total Initial Negative Slopes: {len(neg_slope_count)}')
+        print(f'Segment: {ac_iter}')
+        feature_id_list.append(feat_id)
+        
     rafile.close()
     dataSource.Destroy()
     ds.Destroy()
-
 
 def main():
     geofloodHomeDir,projectName,DEM_name,chunk_status,input_fn,output_fn,hr_status = cfg_finder()
@@ -155,10 +195,10 @@ def main():
         os.mkdir(hydro_folder)
     attribute_txt = os.path.join(hydro_folder,
                                  DEM_name+"_River_Attribute.txt")
-    demfn = os.path.join(geofloodHomeDir, input_fn,
-                         "GIS", projectName, DEM_name+".tif")
-    river_attribute_estimation(segment_shp, segcatfn,segcat_shp, demfn,attribute_txt)
-
+    demfn = os.path.join(geofloodHomeDir, input_fn,"GIS", projectName, DEM_name+".tif")
+    river_attribute_estimation(segment_shp, segcatfn,
+                                   segcat_shp, demfn,
+                                   attribute_txt)
 
 if __name__ == '__main__':
     t0 = perf_counter()

@@ -254,13 +254,13 @@ def main():
     for row_iter in range (1,tot_chunks+1):
     	facArray = src_fac.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
     	curvatureArray = src_curv.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
-    	if (os.path.exists(hr_fn) and hr_status==1):
-    		hr_Array = src_hr.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
-    		hr_Array = hr_Array.astype(np.uint8)
-    		if (row_iter==1):
-    			print('Found HR_Flowline Raster')
-    	handArray = src_neghand.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
-    	
+    	if (os.path.exists(hr_fn)) and (hr_status==1):
+            hr_Array = src_hr.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
+            hr_Array = hr_Array.astype(np.uint8)
+            if (row_iter==1):
+                print('Found HR_Flowline Raster')
+    	if (os.path.exists(handfn)):
+            handArray = src_neghand.read(1,window=Window(0,(sample_rows*row_iter-sample_rows),sample_cols,sample_rows))
     	# FAC Calculations
     	facArray = np.log(facArray)
     	facArray = normalize(facArray)
@@ -276,28 +276,33 @@ def main():
 	# If the hr_extraction is found in the outputs folder, include in the cost function.
     	if (os.path.exists(hr_fn)) and (hr_status==1):
     		if (row_iter==1):
-    			print('Calculating cost with NHD HR raster as a parameter.')
+    		    print('Calculating cost with NHD HR raster as a parameter.')
     		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray+hr_Array)
     	elif (not os.path.exists(hr_fn)) and (hr_status==1):
     		if (row_iter==1):
-    			print('Could not find NHD HR raster. Calculating cost with out it.')
-    		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray)
+    		    print("Couldn't find HR raster. Calculating Cost without it.")
+    		cost = 1/(curvatureArray*flowMean + facArray+0.75*handArray)
+            
     	elif (os.path.exists(hr_fn)) and (hr_status==0):
     		if (row_iter==1):
     			print("Found HR raster, but 'hr_flowline' variable in project cfg is set to 0. \
-Calculate cost without HR.")
+Calculate cost without HR. (Set to 1 to use HR)")
     		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray)
-    	else:
+    	elif (not os.path.exists(hr_fn)) and (hr_status==0):
     		if (row_iter==1):
     			print('Not using NHD HR Raster in cost function')
     		cost = 1/(curvatureArray*flowMean+facArray+0.75*handArray)
-
+    	elif (hr_status==-1):
+            if (row_iter==1):
+                print('NOT using any NHD products in Cost Function')
+            cost = 1/(curvatureArray*flowMean+facArray)
     	cost_list.append(cost)
     	row_iter += 1
     	del facArray, curvatureArray, cost, handArray
     	if (os.path.exists(hr_fn)) and (hr_status==1):
     		del hr_Array
     	
+
     costsurfaceArray = cost_list
     del cost_list
     gc.collect()
@@ -310,8 +315,13 @@ Calculate cost without HR.")
     array2raster(costsurfacefn,facfn,costsurfaceArray,gdal.GDT_Float32)
     
     costsurfaceArray[np.isnan(costsurfaceArray)] = 100000
-    # Threshold cost	
+    
+    # Threshold cost
+    # 	
     costsurfaceArray = np.where(costsurfaceArray<costQuantile,costsurfaceArray,100000)
+    #
+    #
+    
     # Check memory usage
     get_raster_info(costsurfacefn)
     df_flowline = pd.read_csv(flowline_csv)    	

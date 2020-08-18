@@ -60,12 +60,11 @@ def forecastH (init_timestr, timestr, hp_input, stage_output):
     hpdata = pd.read_csv(hp_input)
     h = np.zeros_like(Qs, dtype=float)
     for i in range(len(comids)):
-        #Qs[i] = 510 ### Uvalde: 4247.52705 ### Bastrop: 3433 ### Kimble 6384.3945584048915 ### Harris: 1799.9320627079999 ### Colorado: 4479.3287
+        #Qs[i] = 500 ### Uvalde: 4247.52705 ### Bastrop: 3433 ### Kimble 6384.3945584048915 ### Harris: 1799.9320627079999 ### Colorado: 4479.3287
         h_array = hpdata[hpdata['CatchId'] == comids[i]]['Stage'].values
         q_array = hpdata[hpdata['CatchId'] == comids[i]]['Discharge (m3s-1)'].values
         h[i] = np.interp(Qs[i], q_array, h_array, right=-9999)
     # save forecast output
-    print(q_array.dtype)
     saveForecast(init_timestr, timestr, stage_output) 
 
 
@@ -129,3 +128,4 @@ if __name__ == '__main__':
     timestr = tobj['timestamp']
     init_timestr = tobj['init_timestamp']
     forecastH(init_timestr, timestr, hp_input, stage_output)
+    print('Forecast Complete')
