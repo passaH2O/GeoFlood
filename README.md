@@ -29,7 +29,7 @@ Create an Anaconda environment from the *geofloodenv.yml* file
 conda create env --file geofloodenv.yml
 ```
 
-You can use ``` conda env list ``` to verify that the new environment was installed correctly
+You can use ``` conda env list ``` to verify that the new environment was installed correctly.
   
 # Configuration 
 Navigate to the *GeoNet* directory
