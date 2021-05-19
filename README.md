@@ -112,8 +112,14 @@ Inputs:
 Outputs: 
 
          <...\GeoOutputs\GIS\my_project\PM_filtered_grassgis.tif>
+         
+File Description:
 
-Perona-Malik non-linear smoothing/diffusion image filter with default 50 iterations for high-resolution terrain. Edit the 'nFilterIterations' variable in the **pygeonet_defaults.py** script if a different number of iterations is preferred. 
+`_PM_filtered_grassgis.tif` is the Perona-Malik non-linear filtered DEM.
+
+Recommendations:
+
+Smoothing with default 50 iterations for high-resolution terrain. Edit the `nFilterIterations` variable in the **pygeonet_defaults.py** script if a different number of iterations is preferred. 
 
 ### 2. Slope and Curvature
 ```
@@ -128,8 +134,15 @@ Outputs:
 
          <...\GeoOutputs\GIS\my_project\dem_slope.tif>
          <...\GeoOutputs\GIS\my_project\dem_curvature.tif>
+         
+File Description:
 
-A geometric curvature calculation is the default, but can be changed to a laplacian curvature by changing the 'curvatureCalcMethod' in the **pygeonet_defaults.py** script from *geometric* to *laplacian*.
+`_slope.tif` is the slope raster computed from the `_PM_filtered_grassgis.tif`.
+`_curavture.tif` is the curvature raster computed from the `_PM_filtered_grassgis.tif`.
+
+Rcommendations:
+
+`_slope.tif` not currently used in GeoFlood workflow. A geometric curvature calculation is the default, but can be changed to a laplacian curvature by changing the 'curvatureCalcMethod' in the **pygeonet_defaults.py** script from *geometric* to *laplacian*.
 
 ### 3. GRASS GIS
 ```
