@@ -1,8 +1,7 @@
 from __future__ import division
 import os
 import pandas as pd
-from osgeo import ogr
-import gdal, osr
+from osgeo import ogr, gdal, osr
 import configparser
 import inspect
 from time import perf_counter 
