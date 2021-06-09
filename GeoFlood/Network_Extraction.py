@@ -1,6 +1,5 @@
 from __future__ import division
 import os
-import gdal, osr
 import psutil
 import math
 import numpy as np
@@ -11,7 +10,7 @@ import inspect
 import gc
 import rasterio
 
-from osgeo import ogr
+from osgeo import ogr, gdal, osr
 from skimage.graph import route_through_array
 from time import perf_counter
 from rasterio.mask import mask
