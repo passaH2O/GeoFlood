@@ -1,8 +1,7 @@
 from __future__ import division
 import os
 import math
-from osgeo import ogr
-import gdal, osr
+from osgeo import ogr, gdal, osr
 import configparser
 import inspect
 import geopandas as gpd
