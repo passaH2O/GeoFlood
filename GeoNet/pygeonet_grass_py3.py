@@ -28,7 +28,7 @@ def grass(filteredDemArray):
     # Query GRASS 7 itself for its GISBASE
     startcmd = [grass7bin, '--config', 'path']
 
-    p = subprocess.Popen(startcmd, shell=True,
+    p = subprocess.Popen(startcmd, shell=False,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
     if p.returncode != 0:
@@ -129,9 +129,9 @@ def grass(filteredDemArray):
     for extension in extensions:
         if extension in extensions_installed:
             g.run_command('g.extension', extension=extension, operation="remove")
-            g.run_command('g.extension', extension=extension)
-        else:
-            g.run_command('g.extension', extension=extension)
+        g.run_command(
+            'g.extension', extension=extension,
+            url='https://svn.osgeo.org/grass/grass-addons/grass7')
             
     # Read the filtered DEM
     print('Import filtered DEM into GRASSGIS and '\
