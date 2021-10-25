@@ -122,13 +122,9 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
     for extension in extensions:
         if extension in extensions_installed:
             g.run_command('g.extension', extension=extension, operation="remove")
-            g.run_command('g.extension',
-                          extension=extension,
-                          url='https://svn.osgeo.org/grass/grass-addons/grass7')
-        else:
-            g.run_command('g.extension',
-                          extension=extension,
-                          url='https://svn.osgeo.org/grass/grass-addons/grass7')
+        g.run_command(
+            'g.extension', extension=extension,
+            url='https://svn.osgeo.org/grass/grass-addons/grass7')
 
     # Read the flow direction raster
     g.run_command('r.in.gdal', input=fdrfn,
