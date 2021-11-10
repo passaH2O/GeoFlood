@@ -81,22 +81,22 @@ def saveForecast(init_timestr, timestr, stage_output):
                           'within the domain of interests through the aggregation' + \
                           'of HAND hydro property tables and NOAA NWM forecast netcdf on channel_rt'
     index = rootgrp.createDimension("index", len(comids))
-    comid_vari = rootgrp.createVariable("HYDROID","u4",("index",))
+    comid_vari = rootgrp.createVariable("COMID","u4",("index",))
     h_vari = rootgrp.createVariable("H","f4",("index",))
     q_vari = rootgrp.createVariable("Q","f4",("index",))
     comid_vari[:] = comids
     q_vari[:] = Qs
     h_vari[:] = h
     comid_vari.units = 'index'
-    comid_vari.long_name = 'Catchment ID (HYDROID)'
+    comid_vari.long_name = 'Catchment ID (COMID)'
     h_vari.units = 'm'
     h_vari.long_name = 'Inundation height forecast'
     q_vari.units = 'm3s-1'
     q_vari.long_name = 'Inundation discharge forecast'
     rootgrp.close()
     csv_output = stage_output[:-3]+".csv"
-    df = pd.DataFrame({"HYDROID" : comids, "H" : h, "Q": Qs})
-    df.to_csv(csv_output, index=False, columns=['HYDROID', 'Q', 'H'])
+    df = pd.DataFrame({"COMID" : comids, "H" : h, "Q": Qs})
+    df.to_csv(csv_output, index=False, columns=['COMID', 'Q', 'H'])
 
 
 # global variables
