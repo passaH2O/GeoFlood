@@ -67,6 +67,14 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
         gisdb = os.path.join(home, "grassdata")
     os.environ['GISDBASE'] = gisdb
 
+    # Make GRASS GIS Database if doesn't already exist
+    if not os.path.exists(gisdb):
+        try:
+            os.makedirs(gisdb)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
     # Linux: set path to GRASS libs
     path = os.getenv('LD_LIBRARY_PATH')
     directory = os.path.join(gisbase, 'lib')
