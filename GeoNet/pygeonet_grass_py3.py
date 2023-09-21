@@ -123,25 +123,6 @@ def grass(filteredDemArray):
     # gsetup initialization 
     gsetup.init(gisdb, location, mapset)
 
-    # #############
-    # # debugging #
-    # #############
-    # demFileName = Parameters.demFileName # this reads something like skunk.tif
-    # geotiffmapraster = demFileName.split('.')[0]
-    # g.run_command(
-    #   "r.in.gdal",
-    #   input=geotiff,
-    #   output=geotiffmapraster,
-    #   overwrite=True)
-    # print(geotiff,demFileName,geotiffmapraster)#; sys.exit()
-    # g.run_command("r.info", map=geotiffmapraster)
-    # g.run_command("g.region", raster=geotiffmapraster)
-    # g.run_command('r.out.gdal',overwrite=True,\
-    #               input=geotiffmapraster, type='Float32',\
-    #               output='test_out2.tif',\
-    #               format='GTiff')
-    # sys.exit()
-
     # Manage extensions
     extensions = ['r.stream.basins', 'r.stream.watersheds']
     extensions_installed = g.read_command('g.extension', 'a').splitlines()
