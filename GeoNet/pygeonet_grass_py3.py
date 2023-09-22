@@ -12,21 +12,21 @@ def grass(filteredDemArray):
     # Software
     if sys.platform.startswith('win'):
         # MS Windows
-        grass7bin = r'C:\OSGeo4W64\bin\grass78.bat'
+        grassbin = r'C:\OSGeo4W64\bin\grass78.bat'
         # uncomment when using standalone WinGRASS installer
-        # grass7bin = r'C:\Program Files (x86)\GRASS GIS 7.2.0\grass72.bat'
+        # grassbin = r'C:\Program Files (x86)\GRASS GIS 7.2.0\grass72.bat'
         # this can be avoided if GRASS executable is added to PATH
     elif sys.platform.startswith('darwin'):
         # Mac OS X
         # TODO: this have to be checked, maybe unix way is good enough
-        grass7bin = '/Applications/GRASS/GRASS-7.8.app/'
+        grassbin = '/Applications/GRASS/GRASS-7.8.app/'
     elif sys.platform.startswith('linux'):
-        grass7bin = r'grass78'
+        grassbin = r'grass'
     else:
         raise OSError('Platform not configured')
     
     # Query GRASS 7 itself for its GISBASE
-    startcmd = [grass7bin, '--config', 'path']
+    startcmd = [grassbin, '--config', 'path']
 
     p = subprocess.Popen(startcmd, shell=False,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -53,7 +53,7 @@ def grass(filteredDemArray):
     os.environ['PATH'] += os.pathsep + os.path.join(gisbase, 'extrabin')
     # add path to GRASS addons
     home = os.path.expanduser("~")
-    os.environ['PATH'] += os.pathsep + os.path.join(home, '.grass7', 'addons', 'scripts')
+    # os.environ['PATH'] += os.pathsep + os.path.join(home, '.grass8', 'addons', 'scripts')
 
     # Define GRASS-Python environment
     gpydir = os.path.join(gisbase, "etc", "python")
@@ -90,9 +90,9 @@ def grass(filteredDemArray):
     location = 'geonet'
     os.environ['LOCATION_NAME'] = location
     grassGISlocation = os.path.join(gisdb, location)
-    if os.path.exists(grassGISlocation):
-        print("Cleaning existing Grass location")
-        shutil.rmtree(grassGISlocation)
+    # if os.path.exists(grassGISlocation):
+    #     print("Cleaning existing Grass location")
+    #     shutil.rmtree(grassGISlocation)
 
     mapset = 'PERMANENT'
     os.environ['MAPSET'] = mapset
@@ -102,16 +102,16 @@ def grass(filteredDemArray):
     import grass.script.setup as gsetup
 
     # Launch session
-    gsetup.init(gisbase, gisdb, location, mapset)
+    gsetup.init(gisdb, location, mapset)
 
     #originalGeotiff = os.path.join(Parameters.demDataFilePath, Parameters.demFileName)
     geotiff = Parameters.pmGrassGISfileName
     print('Making the geonet location')
-    g.run_command('g.proj', georef=geotiff, location = location)
+    # g.run_command('g.proj', georef=geotiff, location = location)
     print('Existing Mapsets after making locations:')
     g.read_command('g.mapsets', flags = 'l')
     print('Setting GRASSGIS environ')
-    gsetup.init(gisbase, gisdb, location, mapset)
+    gsetup.init(gisdb, location, mapset)
     ##    g.gisenv()
 
     # Mapset
@@ -121,7 +121,7 @@ def grass(filteredDemArray):
     g.run_command('g.mapset', flags = 'c', mapset = mapset,\
                   location = location, dbase = gisdb)
     # gsetup initialization 
-    gsetup.init(gisbase, gisdb, location, mapset)
+    gsetup.init(gisdb, location, mapset)
 
     # Manage extensions
     extensions = ['r.stream.basins', 'r.stream.watersheds']
@@ -138,32 +138,36 @@ def grass(filteredDemArray):
           'name the new layer with the DEM name')
     demFileName = Parameters.demFileName # this reads something like skunk.tif
     geotiffmapraster = demFileName.split('.')[0]
+
     print('GRASSGIS layer name: ',geotiffmapraster)
     g.run_command('r.in.gdal', input=geotiff, \
                   output=geotiffmapraster,overwrite=True)
     gtf = Parameters.geotransform
+    g.run_command("g.region", raster=geotiffmapraster)
+
     #Flow computation for massive grids (float version)
     print("Calling the r.watershed command from GRASS GIS")
     subbasinThreshold = defaults.thresholdAreaSubBasinIndexing
-    if (not hasattr(Parameters, 'xDemSize')) or (not hasattr(Parameters, 'yDemSize')):
-        Parameters.yDemSize=np.size(filteredDemArray,0)
-        Parameters.xDemSize=np.size(filteredDemArray,1)
-    if Parameters.xDemSize > 4000 or Parameters.yDemSize > 4000:
-        print ('using swap memory option for large size DEM')
-        g.run_command('r.watershed',flags ='am',overwrite=True,\
-                      elevation=geotiffmapraster, \
-                      threshold=subbasinThreshold, \
-                      drainage = 'dra1v23')
-        g.run_command('r.watershed',flags ='am',overwrite=True,\
-                      elevation=geotiffmapraster, \
-                      threshold=subbasinThreshold, \
-                      accumulation='acc1v23')
-    else :
-        g.run_command('r.watershed',flags ='a',overwrite=True,\
-                      elevation=geotiffmapraster, \
-                      threshold=subbasinThreshold, \
-                      accumulation='acc1v23',\
-                      drainage = 'dra1v23')
+    # if (not hasattr(Parameters, 'xDemSize')) or (not hasattr(Parameters, 'yDemSize')):
+    #     Parameters.yDemSize=np.size(filteredDemArray,0)
+    #     Parameters.xDemSize=np.size(filteredDemArray,1)
+    # if Parameters.xDemSize > 4000 or Parameters.yDemSize > 4000:
+    #     print ('using swap memory option for large size DEM')
+    #     g.run_command('r.watershed',flags ='am',overwrite=True,\
+    #                   elevation=geotiffmapraster, \
+    #                   threshold=subbasinThreshold, \
+    #                   drainage = 'dra1v23')
+    #     g.run_command('r.watershed',flags ='am',overwrite=True,\
+    #                   elevation=geotiffmapraster, \
+    #                   threshold=subbasinThreshold, \
+    #                   accumulation='acc1v23')
+    # else :
+
+    g.run_command('r.watershed',flags ='a',overwrite=True,\
+                  elevation=geotiffmapraster, \
+                  threshold=subbasinThreshold, \
+                  accumulation='acc1v23',\
+                  drainage = 'dra1v23')
     print('Identify outlets by negative flow direction')
     g.run_command('r.mapcalc',overwrite=True,\
                   expression='outletmap = if(dra1v23 >= 0,null(),1)')
