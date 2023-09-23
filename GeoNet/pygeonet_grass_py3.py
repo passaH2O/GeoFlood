@@ -18,8 +18,7 @@ def grass(filteredDemArray):
         # this can be avoided if GRASS executable is added to PATH
     elif sys.platform.startswith('darwin'):
         # Mac OS X
-        # TODO: this have to be checked, maybe unix way is good enough
-        grassbin = '/Applications/GRASS/GRASS-7.8.app/'
+        grassbin = '/Applications/GRASS-8.3.app/Contents/Resources/bin/grass'
     elif sys.platform.startswith('linux'):
         grassbin = r'grass'
     else:
