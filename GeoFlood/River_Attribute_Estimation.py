@@ -103,11 +103,11 @@ def river_attribute_estimation(segment_shp, segcatfn,
         # Append the current iteration to the du/container array.
         m_array_du.append(m_array)
         # Convert to a numpy array of arrays instead of a list of arrays. This allows it to be indexed numerically.
-        m_array_du_np = np.asarray(m_array_du) 
+        m_array_du_np = np.asarray(m_array_du, dtype=object)
 
         # Same instructions used for the 'm_array_du' variable are done in the follwing two lines for z.
         z_array_du.append(z_array)
-        z_array_du_np = np.asarray(z_array_du)
+        z_array_du_np = np.asarray(z_array_du, dtype=object)
         
         #########################################################################################################
         # As done with the m and z values, append each new slope iteration to the 'slope_array_du' array 
