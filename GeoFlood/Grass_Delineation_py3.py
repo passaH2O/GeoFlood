@@ -21,8 +21,7 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
         # this can be avoided if GRASS executable is added to PATH
     elif sys.platform.startswith('darwin'):
         # Mac OS X
-        # TODO: this have to be checked, maybe unix way is good enough
-        grass7bin = '/Applications/GRASS/GRASS-7.8.app/'
+        grass7bin = '/Applications/GRASS-8.3.app/Contents/Resources/bin/grass'
     elif sys.platform.startswith('linux'):
         # grass7bin = 'grass78'
         grass7bin = 'grass'
