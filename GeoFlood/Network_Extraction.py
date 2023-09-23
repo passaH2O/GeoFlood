@@ -233,10 +233,10 @@ def main():
     print(f'Chunk status: {chunk_status}')
     dem_bytes = src_curv.read(1).nbytes
     dem_limit = 1_500_000_000
-    print(f'DEM Size: {round(np.float(dem_bytes)/10**9,3)} GB')
+    print(f'DEM Size: {round(float(dem_bytes)/10**9,3)} GB')
     if (dem_bytes>=dem_limit) and (chunk_status==1): # Default setting
     	print("Chunking DEM")
-    	tot_chunks = math.ceil(np.float(dem_bytes)/(10**9))
+    	tot_chunks = math.ceil(float(dem_bytes)/(10**9))
     	print(f'Number of Chunks: {tot_chunks}')
     elif (dem_bytes<dem_limit) and (chunk_status==1):
     	print("DEM not big enough to chunk")
