@@ -140,9 +140,9 @@ def segment_catchment_delineation(fdrfn, segshp, segcatfn):
     g.run_command('g.region', raster='fdr')
     # Read the channel segment shapefile
     g.run_command('v.in.ogr', input=segshp,
-                  output='Segment')
+                  output='Segment',overwrite=True)
     g.run_command('v.to.rast', input='Segment', use='attr',
-                  output='stream', attribute_column='HYDROID')
+                  output='stream', attribute_column='HYDROID',overwrite=True)
     g.run_command('r.stream.basins',overwrite=True,\
                   direction='fdr',stream_rast='stream',\
                   basins = 'subbasins')
